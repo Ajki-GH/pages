@@ -1,4 +1,73 @@
 <!DOCTYPE html>
+<!--
+ICP Supply Metrics Table Layout & Data Sources (Parent/Child hierarchy)
+
+DISPLAY BEHAVIOR
+- Main rows (Total, Liquid, Staked, Maturity, Burned) are EXPANDED by default.
+- Sub-rows (e.g., Unlocking, Locked, Unlocked, Community, Fees, Cycles) are COLLAPSED by default unless expanded by the user.
+- Expand/collapse is indicated with a suffix chevron icon. No prefix arrows are shown on EXPANDABLE rows.
+- Non-expandable sub/age rows are visually indented via padding; they include a small text prefix (↳ for sub, ↳↳ for age) for readability.
+
+DATA MAP
+Parent: Total
+  - Endpoint: https://ledger-api.internetcomputer.org/supply/total/latest
+
+Parent: Liquid
+  - Endpoint: https://ledger-api.internetcomputer.org/supply/circulating/latest
+  - Calculation: Total - Staked
+
+Parent: Staked {expandable}
+  - Endpoint: https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json
+  - Value: governance_total_locked_e8s
+  - Child: Unlocking {expandable}
+    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_e8s
+    - Calculation: sum of all buckets (0–96 months) / 100,000,000
+    - Child: 0-1 years (sum ge=0,lt=6 and ge=6,lt=12)
+    - Child: 1-2 years (sum ge=12,lt=18 and ge=18,lt=24)
+    - Child: 2-3 years (sum ge=24,lt=30 and ge=30,lt=36)
+    - Child: 3-4 years (sum ge=36,lt=42 and ge=42,lt=48)
+    - Child: 4-5 years (sum ge=48,lt=54 and ge=54,lt=60)
+    - Child: 5-6 years (sum ge=60,lt=66 and ge=66,lt=72)
+    - Child: 6-7 years (sum ge=72,lt=78 and ge=78,lt=84)
+    - Child: 7-8 years (sum ge=84,lt=90 and ge=90,lt=96)
+    - Child: 8+ years (sum ge>=96)
+  - Child: Locked {expandable}
+    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_e8s
+    - Calculation: sum of all buckets (0–102 months) / 100,000,000
+    - Child: 0-1 years (sum ge=0,lt=6 and ge=6,lt=12)
+    - Child: 1-2 years (sum ge=12,lt=18 and ge=18,lt=24)
+    - Child: 2-3 years (sum ge=24,lt=30 and ge=30,lt=36)
+    - Child: 3-4 years (sum ge=36,lt=42 and ge=42,lt=48)
+    - Child: 4-5 years (sum ge=48,lt=54 and ge=54,lt=60)
+    - Child: 5-6 years (sum ge=60,lt=66 and ge=66,lt=72)
+    - Child: 6-7 years (sum ge=72,lt=78 and ge=78,lt=84)
+    - Child: 7-8 years (sum ge=84,lt=90 and ge=90,lt=96)
+    - Child: 8+ years (sum ge>=96)
+  - Child: Community (non-expandable)
+    - Endpoint: https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-staked?format=json&step=7200
+
+Parent: Maturity {expandable}
+  - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_maturity_e8s_equivalent
+  - Calculation: (governance_total_maturity_e8s_equivalent + governance_total_staked_maturity_e8s_equivalent) / 100,000,000
+  - Child: Unlocked (non-expandable)
+    - Calculation: total_maturity - total_staked_maturity
+  - Child: Unlocking {expandable}
+    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_staked_maturity_e8s_equivalent
+    - Calculation: sum of all buckets (0–96 months) / 100,000,000
+    - Child: 0-1 years … 8+ years (same month bucket logic as Staked → Unlocking)
+  - Child: Locked {expandable}
+    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_staked_maturity_e8s_equivalent
+    - Calculation: sum of all buckets (0–102 months) / 100,000,000
+    - Child: 0-1 years … 8+ years (same month bucket logic as Staked → Locked)
+  - Child: Community (non-expandable)
+    - Endpoint: https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-maturity?format=json&step=7200
+
+Parent: Burned {expandable}
+  - Source: https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json
+  - Calculation: icp_burned_fees + total_cycle_burn_till_date
+  - Child: Fees (non-expandable) → Value: icp_burned_fees
+  - Child: Cycles (non-expandable) → Value: total_cycle_burn_till_date
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,613 +75,332 @@
     <title>ICP Supply Metrics Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom CSS for row classifications */
-        .main-row {
-            font-weight: 600;
-            font-size: 1rem;
+        .font-mono {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, "Courier New", monospace;
         }
-        
-        .sub-row {
-            font-weight: 500;
-            font-size: 0.95rem;
-            padding-left: 1.5rem;
-        }
-        
-        .age-row {
-            font-weight: 400;
-            font-size: 0.9rem;
-            padding-left: 3rem;
-        }
-        
-        .expandable {
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        .expand-icon {
-            transition: transform 0.2s ease;
-            display: inline-block;
-            width: 1rem;
-            margin-right: 0.5rem;
-        }
-        
-        .expanded .expand-icon {
-            transform: rotate(90deg);
-        }
-        
-        .loading {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
+        .main-row { font-weight: 600; font-size: 1rem; font-family: inherit; }
+        .sub-row { font-weight: 500; font-size: 0.95rem; padding-left: 1.5rem; font-family: inherit; }
+        .age-row { font-weight: 400; font-size: 0.9rem; padding-left: 3rem; font-family: inherit; }
+        .expandable { cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; }
+        .expand-icon { transition: transform 0.2s ease; display: inline-block; margin-left: 0.5rem; }
+        .expand-icon.expanded { transform: rotate(180deg); }
+        .metric-value { font-family: inherit; font-variant-numeric: tabular-nums; }
     </style>
 </head>
-<body class="bg-black text-green-400 w-full h-screen overflow-auto">
+<body class="bg-black text-green-400 w-full h-screen overflow-auto font-mono">
     <div class="w-full h-full flex items-start justify-center py-8">
         <div class="min-w-[360px] max-w-[900px] w-full mx-auto px-4">
             <h1 class="text-2xl font-bold mb-6 text-center">ICP Supply Metrics</h1>
-            
-            <!-- Loading indicator -->
-            <div id="loadingIndicator" class="text-center mb-4">
-                <div class="loading">Loading real-time data from Internet Computer...</div>
-            </div>
-            
+
             <!-- Metrics Table -->
-            <table id="metricsTable" class="w-full" style="border-spacing: 0; border-collapse: separate;">
+            <table id="metricsTable" class="w-full" style="border-spacing:0;border-collapse:separate;">
                 <thead>
-                    <tr class="border-b border-green-400">
+                    <tr class="border-b border-green-400/60">
                         <th class="text-left py-3 px-2 font-semibold">Label</th>
-                        <th class="text-right py-3 px-2 font-semibold min-w-[120px]">Value</th>
-                        <th class="text-right py-3 px-2 font-semibold min-w-[80px]">Percentage</th>
+                        <th class="text-right py-3 px-2 font-semibold min-w-[140px] metric-value">Value</th>
+                        <th class="text-right py-3 px-2 font-semibold min-w-[90px] metric-value">Percentage</th>
                     </tr>
                 </thead>
-                <tbody id="metricsTableBody">
-                    <!-- Dynamic content will be inserted here -->
-                </tbody>
+                <tbody id="metricsTableBody"></tbody>
             </table>
-            
+
             <!-- Last updated timestamp -->
             <div id="lastUpdated" class="text-center mt-4 text-sm opacity-70"></div>
-            
-            <!-- Error display -->
-            <div id="errorDisplay" class="text-red-400 text-center mt-4 hidden"></div>
         </div>
     </div>
 
     <script>
-        /**
-         * ICP Metrics Dashboard
-         * Fetches real-time data from Internet Computer APIs and displays supply metrics
-         */
-        
-        class ICPMetricsDashboard {
-            constructor() {
-                this.data = new Map();
-                this.expandedRows = new Set(['staked', 'maturity', 'burned']); // Default expanded sections
-                this.totalSupply = 0;
-                this.isLoading = false;
-                
-                // API endpoints for ICP data
-                this.endpoints = {
-                    total: 'https://ledger-api.internetcomputer.org/supply/total/latest',
-                    circulating: 'https://ledger-api.internetcomputer.org/supply/circulating/latest',
-                    dailyStats: 'https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json',
-                    governanceMetrics: {
-                        dissolvingNeurons: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_e8s',
-                        lockedNeurons: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_e8s',
-                        totalMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_maturity_e8s_equivalent',
-                        stakedMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_staked_maturity_e8s_equivalent',
-                        dissolvingStakedMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_staked_maturity_e8s_equivalent',
-                        lockedStakedMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_staked_maturity_e8s_equivalent'
-                    },
-                    communityFund: 'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-staked?format=json&step=7200',
-                    communityMaturity: 'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-maturity?format=json&step=7200'
-                };
-            }
-            
-            /**
-             * Initialize the dashboard and fetch data
-             */
-            async init() {
-                await this.fetchAllData();
-                this.renderTable();
-                this.updateTimestamp();
-                
-                // Refresh data every 5 minutes
-                setInterval(() => {
-                    this.fetchAllData().then(() => {
-                        this.renderTable();
-                        this.updateTimestamp();
-                    });
-                }, 5 * 60 * 1000);
-            }
-            
-            /**
-             * Fetch data from all IC API endpoints
-             */
-            async fetchAllData() {
-                this.showLoading(true);
-                
-                try {
-                    // Fetch all data in parallel
-                    const [
-                        totalSupply,
-                        circulatingSupply,
-                        dailyStats,
-                        dissolvingNeurons,
-                        lockedNeurons,
-                        totalMaturity,
-                        stakedMaturity,
-                        dissolvingStakedMaturity,
-                        lockedStakedMaturity,
-                        communityFund,
-                        communityMaturity
-                    ] = await Promise.all([
-                        this.fetchJSON(this.endpoints.total),
-                        this.fetchJSON(this.endpoints.circulating),
-                        this.fetchJSON(this.endpoints.dailyStats),
-                        this.fetchJSON(this.endpoints.governanceMetrics.dissolvingNeurons),
-                        this.fetchJSON(this.endpoints.governanceMetrics.lockedNeurons),
-                        this.fetchJSON(this.endpoints.governanceMetrics.totalMaturity),
-                        this.fetchJSON(this.endpoints.governanceMetrics.stakedMaturity),
-                        this.fetchJSON(this.endpoints.governanceMetrics.dissolvingStakedMaturity),
-                        this.fetchJSON(this.endpoints.governanceMetrics.lockedStakedMaturity),
-                        this.fetchJSON(this.endpoints.communityFund),
-                        this.fetchJSON(this.endpoints.communityMaturity)
-                    ]);
-                    
-                    // Process and store data
-                    this.processData({
-                        totalSupply,
-                        circulatingSupply,
-                        dailyStats,
-                        dissolvingNeurons,
-                        lockedNeurons,
-                        totalMaturity,
-                        stakedMaturity,
-                        dissolvingStakedMaturity,
-                        lockedStakedMaturity,
-                        communityFund,
-                        communityMaturity
-                    });
-                    
-                    this.hideError();
-                } catch (error) {
-                    console.error('Error fetching data:', error);
-                    this.showError('Failed to fetch data from Internet Computer APIs');
-                } finally {
-                    this.showLoading(false);
-                }
-            }
-            
-            /**
-             * Fetch JSON data from an endpoint with error handling
-             */
-            async fetchJSON(url) {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return await response.json();
-            }
-            
-            /**
-             * Process raw API data into structured metrics
-             */
-            processData(rawData) {
-                try {
-                    // Convert e8s to ICP (÷ 100,000,000)
-                    const e8sToICP = (e8s) => (e8s || 0) / 100000000;
-                    
-                    // Safe data extraction with fallbacks
-                    const safeGetLatestValue = (data, field) => {
-                        if (!data || !data.data || !Array.isArray(data.data) || data.data.length === 0) {
-                            console.warn(`No data available for ${field}`);
-                            return 0;
-                        }
-                        const latest = data.data[data.data.length - 1];
-                        return latest[field] || 0;
-                    };
-                    
-                    // Extract total supply with multiple fallback formats
-                    let totalSupplyE8s = 0;
-                    if (rawData.totalSupply) {
-                        totalSupplyE8s = rawData.totalSupply.total_supply_e8s || 
-                                       rawData.totalSupply.totalSupply || 
-                                       rawData.totalSupply;
-                    }
-                    this.totalSupply = e8sToICP(totalSupplyE8s);
-                    
-                    // Extract circulating supply with fallbacks
-                    let circulatingSupplyE8s = 0;
-                    if (rawData.circulatingSupply) {
-                        circulatingSupplyE8s = rawData.circulatingSupply.circulating_supply_e8s || 
-                                             rawData.circulatingSupply.circulatingSupply || 
-                                             rawData.circulatingSupply;
-                    }
-                    
-                    // Get staked amount from daily stats with safe extraction
-                    const stakedAmount = e8sToICP(safeGetLatestValue(rawData.dailyStats, 'governance_total_locked_e8s'));
-                    
-                    // Calculate liquid (Total - Staked)
-                    const liquidAmount = this.totalSupply - stakedAmount;
-                    
-                    // Process governance bucket data with safe extraction
-                    const dissolvingBuckets = this.processBuckets(rawData.dissolvingNeurons);
-                    const lockedBuckets = this.processBuckets(rawData.lockedNeurons);
-                    const dissolvingMaturityBuckets = this.processBuckets(rawData.dissolvingStakedMaturity);
-                    const lockedMaturityBuckets = this.processBuckets(rawData.lockedStakedMaturity);
-                    
-                    // Calculate maturity values with safe extraction
-                    const totalMaturity = e8sToICP(safeGetLatestValue(rawData.totalMaturity, 'governance_total_maturity_e8s_equivalent'));
-                    const totalStakedMaturity = e8sToICP(safeGetLatestValue(rawData.stakedMaturity, 'governance_total_staked_maturity_e8s_equivalent'));
-                    const unlockedMaturity = Math.max(0, totalMaturity - totalStakedMaturity);
-                    
-                    // Calculate burned amounts with safe extraction
-                    const burnedFees = e8sToICP(safeGetLatestValue(rawData.dailyStats, 'icp_burned_fees'));
-                    const burnedCycles = e8sToICP(safeGetLatestValue(rawData.dailyStats, 'total_cycle_burn_till_date'));
-                    const totalBurned = burnedFees + burnedCycles;
-                    
-                    // Get community fund data with safe extraction
-                    const communityFundStaked = rawData.communityFund && rawData.communityFund.data && Array.isArray(rawData.communityFund.data) && rawData.communityFund.data.length > 0 ? 
-                        e8sToICP(rawData.communityFund.data[rawData.communityFund.data.length - 1].community_fund_total_staked || 0) : 0;
-                    const communityFundMaturity = rawData.communityMaturity && rawData.communityMaturity.data && Array.isArray(rawData.communityMaturity.data) && rawData.communityMaturity.data.length > 0 ? 
-                        e8sToICP(rawData.communityMaturity.data[rawData.communityMaturity.data.length - 1].community_fund_total_maturity || 0) : 0;
-                
-                // Store processed data
-                this.data.clear();
-                
-                // Main metrics
-                this.data.set('total', { value: this.totalSupply, type: 'main-row' });
-                this.data.set('liquid', { value: liquidAmount, type: 'main-row' });
-                this.data.set('staked', { value: stakedAmount, type: 'main-row', expandable: true });
-                this.data.set('maturity', { value: totalMaturity, type: 'main-row', expandable: true });
-                this.data.set('burned', { value: totalBurned, type: 'main-row', expandable: true });
-                
-                // Staked breakdown
-                this.data.set('staked.unlocking', { value: dissolvingBuckets.total, type: 'sub-row', parent: 'staked', expandable: true });
-                this.data.set('staked.locked', { value: lockedBuckets.total, type: 'sub-row', parent: 'staked', expandable: true });
-                this.data.set('staked.community', { value: communityFundStaked, type: 'sub-row', parent: 'staked' });
-                
-                // Age breakdowns for staked unlocking
-                this.addAgeBreakdown('staked.unlocking', dissolvingBuckets.ageRanges);
-                
-                // Age breakdowns for staked locked  
-                this.addAgeBreakdown('staked.locked', lockedBuckets.ageRanges);
-                
-                // Maturity breakdown
-                this.data.set('maturity.unlocked', { value: unlockedMaturity, type: 'sub-row', parent: 'maturity' });
-                this.data.set('maturity.unlocking', { value: dissolvingMaturityBuckets.total, type: 'sub-row', parent: 'maturity', expandable: true });
-                this.data.set('maturity.locked', { value: lockedMaturityBuckets.total, type: 'sub-row', parent: 'maturity', expandable: true });
-                this.data.set('maturity.community', { value: communityFundMaturity, type: 'sub-row', parent: 'maturity' });
-                
-                // Age breakdowns for maturity
-                this.addAgeBreakdown('maturity.unlocking', dissolvingMaturityBuckets.ageRanges);
-                this.addAgeBreakdown('maturity.locked', lockedMaturityBuckets.ageRanges);
-                
-                // Burned breakdown
-                this.data.set('burned.fees', { value: burnedFees, type: 'sub-row', parent: 'burned' });
-                this.data.set('burned.cycles', { value: burnedCycles, type: 'sub-row', parent: 'burned' });
-            }
-            
-            /**
-             * Process governance bucket data and calculate age ranges
-             */
-            processBuckets(bucketData) {
-                if (!bucketData || bucketData.length === 0) {
-                    return { total: 0, ageRanges: {} };
-                }
-                
-                const latestData = bucketData[bucketData.length - 1];
-                const buckets = latestData.governance_dissolving_neurons_e8s || 
-                              latestData.governance_not_dissolving_neurons_e8s || 
-                              latestData.governance_dissolving_neurons_staked_maturity_e8s_equivalent ||
-                              latestData.governance_not_dissolving_neurons_staked_maturity_e8s_equivalent ||
-                              {};
-                
-                const e8sToICP = (e8s) => e8s / 100000000;
-                let total = 0;
-                
-                // Age range definitions (in months)
-                const ageRanges = {
-                    '0-1 years': { min: 0, max: 12, value: 0 },
-                    '1-2 years': { min: 12, max: 24, value: 0 },
-                    '2-3 years': { min: 24, max: 36, value: 0 },
-                    '3-4 years': { min: 36, max: 48, value: 0 },
-                    '4-5 years': { min: 48, max: 60, value: 0 },
-                    '5-6 years': { min: 60, max: 72, value: 0 },
-                    '6-7 years': { min: 72, max: 84, value: 0 },
-                    '7-8 years': { min: 84, max: 96, value: 0 },
-                    '8+ years': { min: 96, max: Infinity, value: 0 }
-                };
-                
-                // Sum buckets for each age range
-                Object.keys(buckets).forEach(key => {
-                    const monthMatch = key.match(/ge=(\d+)/);
-                    if (monthMatch) {
-                        const months = parseInt(monthMatch[1]);
-                        const value = e8sToICP(buckets[key]);
-                        total += value;
-                        
-                        // Find appropriate age range
-                        Object.keys(ageRanges).forEach(range => {
-                            const ageRange = ageRanges[range];
-                            if (months >= ageRange.min && months < ageRange.max) {
-                                ageRange.value += value;
-                            }
-                        });
-                    }
-                });
-                
-                return { total, ageRanges };
-            }
-            
-            /**
-             * Add age breakdown data to the metrics
-             */
-            addAgeBreakdown(parentKey, ageRanges) {
-                Object.keys(ageRanges).forEach(ageRange => {
-                    const key = `${parentKey}.${ageRange}`;
-                    this.data.set(key, {
-                        value: ageRanges[ageRange].value,
-                        type: 'age-row',
-                        parent: parentKey
-                    });
-                });
-            }
-            
-            /**
-             * Calculate percentage relative to total supply
-             */
-            calculatePercentage(value) {
-                if (this.totalSupply === 0) return 0;
-                return (value / this.totalSupply) * 100;
-            }
-            
-            /**
-             * Format number with comma separators
-             */
-            formatNumber(value) {
-                return Math.round(value).toLocaleString();
-            }
-            
-            /**
-             * Format percentage with 1 decimal place
-             */
-            formatPercentage(value) {
-                if (value === 100) return '100.0%';
-                return value.toFixed(1) + '%';
-            }
-            
-            /**
-             * Render the metrics table
-             */
-            renderTable() {
-                const tbody = document.getElementById('metricsTableBody');
-                tbody.innerHTML = '';
-                
-                // Define the display order
-                const displayOrder = [
-                    'total',
-                    'liquid', 
-                    'staked',
-                    'staked.unlocking',
-                    'staked.unlocking.0-1 years',
-                    'staked.unlocking.1-2 years',
-                    'staked.unlocking.2-3 years',
-                    'staked.unlocking.3-4 years',
-                    'staked.unlocking.4-5 years',
-                    'staked.unlocking.5-6 years',
-                    'staked.unlocking.6-7 years',
-                    'staked.unlocking.7-8 years',
-                    'staked.unlocking.8+ years',
-                    'staked.locked',
-                    'staked.locked.0-1 years',
-                    'staked.locked.1-2 years',
-                    'staked.locked.2-3 years',
-                    'staked.locked.3-4 years',
-                    'staked.locked.4-5 years',
-                    'staked.locked.5-6 years',
-                    'staked.locked.6-7 years',
-                    'staked.locked.7-8 years',
-                    'staked.locked.8+ years',
-                    'staked.community',
-                    'maturity',
-                    'maturity.unlocked',
-                    'maturity.unlocking',
-                    'maturity.unlocking.0-1 years',
-                    'maturity.unlocking.1-2 years',
-                    'maturity.unlocking.2-3 years',
-                    'maturity.unlocking.3-4 years',
-                    'maturity.unlocking.4-5 years',
-                    'maturity.unlocking.5-6 years',
-                    'maturity.unlocking.6-7 years',
-                    'maturity.unlocking.7-8 years',
-                    'maturity.unlocking.8+ years',
-                    'maturity.locked',
-                    'maturity.locked.0-1 years',
-                    'maturity.locked.1-2 years',
-                    'maturity.locked.2-3 years',
-                    'maturity.locked.3-4 years',
-                    'maturity.locked.4-5 years',
-                    'maturity.locked.5-6 years',
-                    'maturity.locked.6-7 years',
-                    'maturity.locked.7-8 years',
-                    'maturity.locked.8+ years',
-                    'maturity.community',
-                    'burned',
-                    'burned.fees',
-                    'burned.cycles'
-                ];
-                
-                displayOrder.forEach(key => {
-                    const metric = this.data.get(key);
-                    if (metric && this.shouldShowRow(key)) {
-                        const row = this.createTableRow(key, metric);
-                        tbody.appendChild(row);
-                    }
-                });
-            }
-            
-            /**
-             * Check if a row should be displayed based on expansion state
-             */
-            shouldShowRow(key) {
-                const parts = key.split('.');
-                if (parts.length === 1) return true; // Always show top-level rows
-                
-                // Check if parent is expanded
-                for (let i = 1; i < parts.length; i++) {
-                    const parentKey = parts.slice(0, i).join('.');
-                    if (this.data.get(parentKey)?.expandable && !this.expandedRows.has(parentKey)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            
-            /**
-             * Create a table row element
-             */
-            createTableRow(key, metric) {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-green-900 hover:bg-opacity-20 transition-colors';
-                
-                // Label cell
-                const labelCell = document.createElement('td');
-                labelCell.className = `py-2 px-2 ${metric.type}`;
-                
-                const displayName = this.getDisplayName(key);
-                
-                if (metric.expandable) {
-                    labelCell.className += ' expandable';
-                    const isExpanded = this.expandedRows.has(key);
-                    
-                    const expandIcon = document.createElement('span');
-                    expandIcon.className = `expand-icon ${isExpanded ? 'expanded' : ''}`;
-                    expandIcon.innerHTML = '▶';
-                    
-                    labelCell.appendChild(expandIcon);
-                    labelCell.appendChild(document.createTextNode(displayName));
-                    
-                    labelCell.addEventListener('click', () => {
-                        this.toggleExpand(key);
-                    });
-                } else {
-                    labelCell.textContent = displayName;
-                }
-                
-                // Value cell
-                const valueCell = document.createElement('td');
-                valueCell.className = 'py-2 px-2 text-right font-mono';
-                valueCell.textContent = this.formatNumber(metric.value);
-                
-                // Percentage cell
-                const percentageCell = document.createElement('td');
-                percentageCell.className = 'py-2 px-2 text-right font-mono';
-                
-                if (key === 'total') {
-                    percentageCell.textContent = '100.0%';
-                } else {
-                    const percentage = this.calculatePercentage(metric.value);
-                    percentageCell.textContent = this.formatPercentage(percentage);
-                }
-                
-                row.appendChild(labelCell);
-                row.appendChild(valueCell);
-                row.appendChild(percentageCell);
-                
-                return row;
-            }
-            
-            /**
-             * Get display name for a metric key
-             */
-            getDisplayName(key) {
-                const displayNames = {
-                    'total': 'Total',
-                    'liquid': 'Liquid',
-                    'staked': 'Staked',
-                    'staked.unlocking': 'Unlocking',
-                    'staked.locked': 'Locked',
-                    'staked.community': 'Community',
-                    'maturity': 'Maturity',
-                    'maturity.unlocked': 'Unlocked',
-                    'maturity.unlocking': 'Unlocking',
-                    'maturity.locked': 'Locked',
-                    'maturity.community': 'Community',
-                    'burned': 'Burned',
-                    'burned.fees': 'Fees',
-                    'burned.cycles': 'Cycles'
-                };
-                
-                // Handle age ranges
-                if (key.includes('0-1 years')) return '0-1 years';
-                if (key.includes('1-2 years')) return '1-2 years';
-                if (key.includes('2-3 years')) return '2-3 years';
-                if (key.includes('3-4 years')) return '3-4 years';
-                if (key.includes('4-5 years')) return '4-5 years';
-                if (key.includes('5-6 years')) return '5-6 years';
-                if (key.includes('6-7 years')) return '6-7 years';
-                if (key.includes('7-8 years')) return '7-8 years';
-                if (key.includes('8+ years')) return '8+ years';
-                
-                return displayNames[key] || key;
-            }
-            
-            /**
-             * Toggle expansion state of a row
-             */
-            toggleExpand(key) {
-                if (this.expandedRows.has(key)) {
-                    this.expandedRows.delete(key);
-                } else {
-                    this.expandedRows.add(key);
-                }
-                this.renderTable();
-            }
-            
-            /**
-             * Show/hide loading indicator
-             */
-            showLoading(show) {
-                const loadingIndicator = document.getElementById('loadingIndicator');
-                loadingIndicator.style.display = show ? 'block' : 'none';
-                this.isLoading = show;
-            }
-            
-            /**
-             * Show error message
-             */
-            showError(message) {
-                const errorDisplay = document.getElementById('errorDisplay');
-                errorDisplay.textContent = message;
-                errorDisplay.classList.remove('hidden');
-            }
-            
-            /**
-             * Hide error message
-             */
-            hideError() {
-                const errorDisplay = document.getElementById('errorDisplay');
-                errorDisplay.classList.add('hidden');
-            }
-            
-            /**
-             * Update last updated timestamp
-             */
-            updateTimestamp() {
-                const lastUpdated = document.getElementById('lastUpdated');
-                const now = new Date();
-                lastUpdated.textContent = `Last updated: ${now.toLocaleString()}`;
+    class ICPMetricsDashboard {
+        constructor(){
+            this.data=new Map();
+            // Main rows expanded by default; sub-rows collapsed by default
+            this.expandedRows=new Set(['staked','maturity','burned']);
+            this.totalSupply=0;
+            this.endpoints={
+                total:'https://ledger-api.internetcomputer.org/supply/total/latest',
+                circulating:'https://ledger-api.internetcomputer.org/supply/circulating/latest',
+                dailyStats:'https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json',
+                governanceMetrics:{
+                    dissolvingNeurons:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_e8s',
+                    lockedNeurons:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_e8s',
+                    totalMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_maturity_e8s_equivalent',
+                    stakedMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_staked_maturity_e8s_equivalent',
+                    dissolvingStakedMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_staked_maturity_e8s_equivalent',
+                    lockedStakedMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_staked_maturity_e8s_equivalent'
+                },
+                communityFund:'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-staked?format=json&step=7200',
+                communityMaturity:'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-maturity?format=json&step=7200'
+            };
+        }
+
+        // Build complete table structure so all rows exist immediately
+        loadCompleteDataStructure(){
+            this.totalSupply=0; this.data.clear();
+            this.data.set('total',{value:0,type:'main-row'});
+            this.data.set('liquid',{value:0,type:'main-row'});
+            this.data.set('staked',{value:0,type:'main-row',expandable:true});
+            this.data.set('maturity',{value:0,type:'main-row',expandable:true});
+            this.data.set('burned',{value:0,type:'main-row',expandable:true});
+
+            const ages=['0-1 years','1-2 years','2-3 years','3-4 years','4-5 years','5-6 years','6-7 years','7-8 years','8+ years'];
+
+            // Staked
+            this.data.set('staked.unlocking',{value:0,type:'sub-row',parent:'staked',expandable:true});
+            this.data.set('staked.locked',{value:0,type:'sub-row',parent:'staked',expandable:true});
+            this.data.set('staked.community',{value:0,type:'sub-row',parent:'staked'});
+            ages.forEach(a=>{ this.data.set(`staked.unlocking.${a}`,{value:0,type:'age-row',parent:'staked.unlocking'}); });
+            ages.forEach(a=>{ this.data.set(`staked.locked.${a}`,{value:0,type:'age-row',parent:'staked.locked'}); });
+
+            // Maturity
+            this.data.set('maturity.unlocked',{value:0,type:'sub-row',parent:'maturity'});
+            this.data.set('maturity.unlocking',{value:0,type:'sub-row',parent:'maturity',expandable:true});
+            this.data.set('maturity.locked',{value:0,type:'sub-row',parent:'maturity',expandable:true});
+            this.data.set('maturity.community',{value:0,type:'sub-row',parent:'maturity'});
+            ages.forEach(a=>{ this.data.set(`maturity.unlocking.${a}`,{value:0,type:'age-row',parent:'maturity.unlocking'}); });
+            ages.forEach(a=>{ this.data.set(`maturity.locked.${a}`,{value:0,type:'age-row',parent:'maturity.locked'}); });
+
+            // Burned
+            this.data.set('burned.fees',{value:0,type:'sub-row',parent:'burned'});
+            this.data.set('burned.cycles',{value:0,type:'sub-row',parent:'burned'});
+        }
+
+        // Fetch helpers
+        async fetchJSON(url){
+            try{
+                const res=await fetch(url,{method:'GET',mode:'cors',cache:'no-cache'});
+                if(!res.ok) throw new Error('HTTP '+res.status);
+                return await res.json();
+            }catch(e){
+                console.warn('fetch failed',url,e.message); return {data:[]};
             }
         }
-        
-        // Initialize the dashboard when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            const dashboard = new ICPMetricsDashboard();
-            dashboard.init().catch(error => {
-                console.error('Failed to initialize dashboard:', error);
+
+        // Convert buckets into totals + age ranges
+        processBuckets(bucketData){
+            if(!bucketData||!Array.isArray(bucketData.data)||bucketData.data.length===0){
+                const emptyAges={'0-1 years':0,'1-2 years':0,'2-3 years':0,'3-4 years':0,'4-5 years':0,'5-6 years':0,'6-7 years':0,'7-8 years':0,'8+ years':0};
+                return {total:0,ageRanges:emptyAges};
+            }
+            const latest=bucketData.data[bucketData.data.length-1];
+            const buckets= latest.governance_dissolving_neurons_e8s
+                          ||latest.governance_not_dissolving_neurons_e8s
+                          ||latest.governance_dissolving_neurons_staked_maturity_e8s_equivalent
+                          ||latest.governance_not_dissolving_neurons_staked_maturity_e8s_equivalent
+                          ||{};
+            const e8=(x)=> (x||0)/100000000;
+            const ranges={
+                '0-1 years':0,'1-2 years':0,'2-3 years':0,'3-4 years':0,'4-5 years':0,'5-6 years':0,'6-7 years':0,'7-8 years':0,'8+ years':0
+            };
+            let total=0;
+            Object.keys(buckets).forEach(k=>{
+                const m=k.match(/ge=(\d+)(?:,lt=(\d+))?/); if(!m) return;
+                const months=parseInt(m[1],10); const val=e8(buckets[k]); total+=val;
+                const push=(label)=>{ranges[label]+=val;};
+                if(months>=0 && months<12){
+                    push('0-1 years');
+                } else if(months>=12 && months<24){ push('1-2 years'); }
+                else if(months>=24 && months<36){ push('2-3 years'); }
+                else if(months>=36 && months<48){ push('3-4 years'); }
+                else if(months>=48 && months<60){ push('4-5 years'); }
+                else if(months>=60 && months<72){ push('5-6 years'); }
+                else if(months>=72 && months<84){ push('6-7 years'); }
+                else if(months>=84 && months<96){ push('7-8 years'); }
+                else if(months>=96){ push('8+ years'); }
             });
-        });
+            return {total,ageRanges:ranges};
+        }
+
+        addAgeBreakdown(parentKey,ages){
+            Object.keys(ages).forEach(label=>{
+                this.data.set(`${parentKey}.${label}`,{value:ages[label],type:'age-row',parent:parentKey});
+            });
+        }
+
+        processData(raw){
+            const e8=(x)=> (x||0)/100000000;
+            const latestVal=(obj,field)=>{
+                if(!obj||!Array.isArray(obj.data)||obj.data.length===0) return 0;
+                const last=obj.data[obj.data.length-1];
+                return e8(last[field]||0);
+            };
+
+            let totalSupplyE8s=0;
+            if(raw.totalSupply){ totalSupplyE8s = raw.totalSupply.total_supply_e8s||raw.totalSupply.totalSupply||raw.totalSupply; }
+            this.totalSupply = e8(totalSupplyE8s);
+
+            const staked = latestVal(raw.dailyStats,'governance_total_locked_e8s');
+            const liquid = Math.max(0, this.totalSupply - staked);
+
+            const dissolving=this.processBuckets(raw.dissolvingNeurons);
+            const locked=this.processBuckets(raw.lockedNeurons);
+
+            const totalMaturity = latestVal(raw.totalMaturity,'governance_total_maturity_e8s_equivalent');
+            const stakedMaturity = latestVal(raw.stakedMaturity,'governance_total_staked_maturity_e8s_equivalent');
+            const unlockedMaturity = Math.max(0, totalMaturity - stakedMaturity);
+            const dissMat=this.processBuckets(raw.dissolvingStakedMaturity);
+            const lockMat=this.processBuckets(raw.lockedStakedMaturity);
+
+            const burnedFees = latestVal(raw.dailyStats,'icp_burned_fees');
+            const burnedCycles = latestVal(raw.dailyStats,'total_cycle_burn_till_date');
+            const totalBurned = burnedFees + burnedCycles;
+
+            const cfStaked = latestVal(raw.communityFund,'community_fund_total_staked');
+            const cfMaturity = latestVal(raw.communityMaturity,'community_fund_total_maturity');
+
+            // Rebuild map with processed values
+            this.data.clear();
+            this.data.set('total',{value:this.totalSupply,type:'main-row'});
+            this.data.set('liquid',{value:liquid,type:'main-row'});
+            this.data.set('staked',{value:staked,type:'main-row',expandable:true});
+            this.data.set('maturity',{value:totalMaturity,type:'main-row',expandable:true});
+            this.data.set('burned',{value:totalBurned,type:'main-row',expandable:true});
+
+            this.data.set('staked.unlocking',{value:dissolving.total,type:'sub-row',parent:'staked',expandable:true});
+            this.addAgeBreakdown('staked.unlocking',dissolving.ageRanges);
+            this.data.set('staked.locked',{value:locked.total,type:'sub-row',parent:'staked',expandable:true});
+            this.addAgeBreakdown('staked.locked',locked.ageRanges);
+            this.data.set('staked.community',{value:cfStaked,type:'sub-row',parent:'staked'});
+
+            this.data.set('maturity.unlocked',{value:unlockedMaturity,type:'sub-row',parent:'maturity'});
+            this.data.set('maturity.unlocking',{value:dissMat.total,type:'sub-row',parent:'maturity',expandable:true});
+            this.addAgeBreakdown('maturity.unlocking',dissMat.ageRanges);
+            this.data.set('maturity.locked',{value:lockMat.total,type:'sub-row',parent:'maturity',expandable:true});
+            this.addAgeBreakdown('maturity.locked',lockMat.ageRanges);
+            this.data.set('maturity.community',{value:cfMaturity,type:'sub-row',parent:'maturity'});
+
+            this.data.set('burned.fees',{value:burnedFees,type:'sub-row',parent:'burned'});
+            this.data.set('burned.cycles',{value:burnedCycles,type:'sub-row',parent:'burned'});
+        }
+
+        async fetchAllData(){
+            const results = await Promise.allSettled([
+                this.fetchJSON(this.endpoints.total),
+                this.fetchJSON(this.endpoints.circulating),
+                this.fetchJSON(this.endpoints.dailyStats),
+                this.fetchJSON(this.endpoints.governanceMetrics.dissolvingNeurons),
+                this.fetchJSON(this.endpoints.governanceMetrics.lockedNeurons),
+                this.fetchJSON(this.endpoints.governanceMetrics.totalMaturity),
+                this.fetchJSON(this.endpoints.governanceMetrics.stakedMaturity),
+                this.fetchJSON(this.endpoints.governanceMetrics.dissolvingStakedMaturity),
+                this.fetchJSON(this.endpoints.governanceMetrics.lockedStakedMaturity),
+                this.fetchJSON(this.endpoints.communityFund),
+                this.fetchJSON(this.endpoints.communityMaturity)
+            ]);
+            const [totalSupply,circulating,dailyStats,diss,locked,totMat,stkMat,dissMat,lockMat,cfS,cfM] = results.map(r=> r.status==='fulfilled'? r.value : {data:[]});
+            this.processData({
+                totalSupply,
+                circulatingSupply: circulating,
+                dailyStats,
+                dissolvingNeurons: diss,
+                lockedNeurons: locked,
+                totalMaturity: totMat,
+                stakedMaturity: stkMat,
+                dissolvingStakedMaturity: dissMat,
+                lockedStakedMaturity: lockMat,
+                communityFund: cfS,
+                communityMaturity: cfM
+            });
+        }
+
+        getDisplayName(key){
+            const map={
+                'total':'Total','liquid':'Liquid','staked':'Staked',
+                'staked.unlocking':'Unlocking','staked.locked':'Locked','staked.community':'Community',
+                'maturity':'Maturity','maturity.unlocked':'Unlocked','maturity.unlocking':'Unlocking','maturity.locked':'Locked','maturity.community':'Community',
+                'burned':'Burned','burned.fees':'Fees','burned.cycles':'Cycles'
+            };
+            if(key.includes('years')) return key.split('.').pop();
+            return map[key]||key;
+        }
+        indentPrefix(type){ return type==='sub-row' ? '↳ ' : (type==='age-row' ? '↳↳ ' : ''); }
+
+        formatNumber(v){ return v===0 ? '0' : Math.round(v).toLocaleString(); }
+        formatPercentage(p){ if(p===0) return '0.0%'; if(p>=100) return '100.0%'; return p.toFixed(1)+'%'; }
+        percentageOfTotal(v){ if(this.totalSupply<=0||v<=0) return 0; return (v/this.totalSupply)*100; }
+
+        createTableRow(key,metric){
+            const tr=document.createElement('tr');
+            tr.className='hover:bg-green-900/20 transition-colors';
+
+            const tdLabel=document.createElement('td');
+            tdLabel.className=`py-2 px-2 ${metric.type}`;
+            const wrap=document.createElement('div');
+            wrap.className = metric.expandable ? 'expandable' : '';
+
+            const nameSpan=document.createElement('span');
+            // Remove prefix arrows on expandable rows; keep on non-expandable for readability
+            nameSpan.textContent=(metric.expandable ? '' : this.indentPrefix(metric.type)) + this.getDisplayName(key);
+            wrap.appendChild(nameSpan);
+
+            if(metric.expandable){
+                const isOpen=this.expandedRows.has(key);
+                const icon=document.createElement('span');
+                icon.className=`expand-icon ${isOpen?'expanded':''}`;
+                icon.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" style="color: rgb(67, 188, 67);"><path d="m6 9 6 6 6-6"></path></svg>';
+                wrap.appendChild(icon);
+                wrap.addEventListener('click',()=>{ this.toggleExpand(key); });
+            }
+            tdLabel.appendChild(wrap);
+
+            const tdVal=document.createElement('td');
+            tdVal.className='py-2 px-2 text-right metric-value';
+            tdVal.textContent=this.formatNumber(metric.value);
+
+            const tdPct=document.createElement('td');
+            tdPct.className='py-2 px-2 text-right metric-value';
+            tdPct.textContent = key==='total' ? '100.0%' : this.formatPercentage(this.percentageOfTotal(metric.value));
+
+            tr.appendChild(tdLabel); tr.appendChild(tdVal); tr.appendChild(tdPct);
+            return tr;
+        }
+
+        shouldShowRow(key){
+            const parts=key.split('.'); if(parts.length===1) return true;
+            for(let i=1;i<parts.length;i++){
+                const parent=parts.slice(0,i).join('.');
+                if(this.data.get(parent)?.expandable && !this.expandedRows.has(parent)) return false;
+            }
+            return true;
+        }
+
+        renderTable(){
+            const tbody=document.getElementById('metricsTableBody');
+            tbody.innerHTML='';
+            const order=[
+                'total','liquid','staked',
+                'staked.unlocking','staked.unlocking.0-1 years','staked.unlocking.1-2 years','staked.unlocking.2-3 years','staked.unlocking.3-4 years','staked.unlocking.4-5 years','staked.unlocking.5-6 years','staked.unlocking.6-7 years','staked.unlocking.7-8 years','staked.unlocking.8+ years',
+                'staked.locked','staked.locked.0-1 years','staked.locked.1-2 years','staked.locked.2-3 years','staked.locked.3-4 years','staked.locked.4-5 years','staked.locked.5-6 years','staked.locked.6-7 years','staked.locked.7-8 years','staked.locked.8+ years','staked.community',
+                'maturity','maturity.unlocked','maturity.unlocking','maturity.unlocking.0-1 years','maturity.unlocking.1-2 years','maturity.unlocking.2-3 years','maturity.unlocking.3-4 years','maturity.unlocking.4-5 years','maturity.unlocking.5-6 years','maturity.unlocking.6-7 years','maturity.unlocking.7-8 years','maturity.unlocking.8+ years',
+                'maturity.locked','maturity.locked.0-1 years','maturity.locked.1-2 years','maturity.locked.2-3 years','maturity.locked.3-4 years','maturity.locked.4-5 years','maturity.locked.5-6 years','maturity.locked.6-7 years','maturity.locked.7-8 years','maturity.locked.8+ years','maturity.community',
+                'burned','burned.fees','burned.cycles'
+            ];
+            order.forEach(k=>{ const m=this.data.get(k); if(m && this.shouldShowRow(k)) tbody.appendChild(this.createTableRow(k,m)); });
+            this.updateTimestamp();
+        }
+
+        toggleExpand(key){
+            if(this.expandedRows.has(key)) this.expandedRows.delete(key); else this.expandedRows.add(key);
+            this.renderTable();
+        }
+
+        updateTimestamp(){
+            const el=document.getElementById('lastUpdated');
+            el.textContent='Last updated: '+ new Date().toLocaleString();
+        }
+
+        async init(){
+            this.loadCompleteDataStructure();
+            this.renderTable();
+            try{ await this.fetchAllData(); this.renderTable(); }catch(e){ console.warn('data fetch error',e.message); }
+            // periodic refresh every 5 min
+            setInterval(async()=>{ try{ await this.fetchAllData(); this.renderTable(); }catch(_){} }, 5*60*1000);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded',()=>{
+        const dashboard=new ICPMetricsDashboard();
+        dashboard.init();
+    });
     </script>
 </body>
 </html>
