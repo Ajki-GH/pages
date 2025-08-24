@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICP Supply Metrics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for row classifications */
+        .main-row {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .sub-row {
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding-left: 1.5rem;
+        }
+        
+        .age-row {
+            font-weight: 400;
+            font-size: 0.9rem;
+            padding-left: 3rem;
+        }
+        
+        .expandable {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .expand-icon {
+            transition: transform 0.2s ease;
+            display: inline-block;
+            width: 1rem;
+            margin-right: 0.5rem;
+        }
+        
+        .expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+        
+        .loading {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-black text-green-400 w-full h-screen overflow-auto">
+    <div class="w-full h-full flex items-start justify-center py-8">
+        <div class="min-w-[360px] max-w-[900px] w-full mx-auto px-4">
+            <h1 class="text-2xl font-bold mb-6 text-center">ICP Supply Metrics</h1>
+            
+            <!-- Loading indicator -->
+            <div id="loadingIndicator" class="text-center mb-4">
+                <div class="loading">Loading real-time data from Internet Computer...</div>
+            </div>
+            
+            <!-- Metrics Table -->
+            <table id="metricsTable" class="w-full" style="border-spacing: 0; border-collapse: separate;">
+                <thead>
+                    <tr class="border-b border-green-400">
+                        <th class="text-left py-3 px-2 font-semibold">Label</th>
+                        <th class="text-right py-3 px-2 font-semibold min-w-[120px]">Value</th>
+                        <th class="text-right py-3 px-2 font-semibold min-w-[80px]">Percentage</th>
+                    </tr>
+                </thead>
+                <tbody id="metricsTableBody">
+                    <!-- Dynamic content will be inserted here -->
+                </tbody>
+            </table>
+            
+            <!-- Last updated timestamp -->
+            <div id="lastUpdated" class="text-center mt-4 text-sm opacity-70"></div>
+            
+            <!-- Error display -->
+            <div id="errorDisplay" class="text-red-400 text-center mt-4 hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ICP Metrics Dashboard
+         * Fetches real-time data from Internet Computer APIs and displays supply metrics
+         */
+        
+        class ICPMetricsDashboard {
+            constructor() {
+                this.data = new Map();
+                this.expandedRows = new Set(['staked', 'maturity', 'burned']); // Default expanded sections
+                this.totalSupply = 0;
+                this.isLoading = false;
+                
+                // API endpoints for ICP data
+                this.endpoints = {
+                    total: 'https://ledger-api.internetcomputer.org/supply/total/latest',
+                    circulating: 'https://ledger-api.internetcomputer.org/supply/circulating/latest',
+                    dailyStats: 'https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json',
+                    governanceMetrics: {
+                        dissolvingNeurons: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_e8s',
+                        lockedNeurons: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_e8s',
+                        totalMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_maturity_e8s_equivalent',
+                        stakedMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_staked_maturity_e8s_equivalent',
+                        dissolvingStakedMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_staked_maturity_e8s_equivalent',
+                        lockedStakedMaturity: 'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_staked_maturity_e8s_equivalent'
+                    },
+                    communityFund: 'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-staked?format=json&step=7200',
+                    communityMaturity: 'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-maturity?format=json&step=7200'
+                };
+            }
+            
+            /**
+             * Initialize the dashboard and fetch data
+             */
+            async init() {
+                await this.fetchAllData();
+                this.renderTable();
+                this.updateTimestamp();
+                
+                // Refresh data every 5 minutes
+                setInterval(() => {
+                    this.fetchAllData().then(() => {
+                        this.renderTable();
+                        this.updateTimestamp();
+                    });
+                }, 5 * 60 * 1000);
+            }
+            
+            /**
+             * Fetch data from all IC API endpoints
+             */
+            async fetchAllData() {
+                this.showLoading(true);
+                
+                try {
+                    // Fetch all data in parallel
+                    const [
+                        totalSupply,
+                        circulatingSupply,
+                        dailyStats,
+                        dissolvingNeurons,
+                        lockedNeurons,
+                        totalMaturity,
+                        stakedMaturity,
+                        dissolvingStakedMaturity,
+                        lockedStakedMaturity,
+                        communityFund,
+                        communityMaturity
+                    ] = await Promise.all([
+                        this.fetchJSON(this.endpoints.total),
+                        this.fetchJSON(this.endpoints.circulating),
+                        this.fetchJSON(this.endpoints.dailyStats),
+                        this.fetchJSON(this.endpoints.governanceMetrics.dissolvingNeurons),
+                        this.fetchJSON(this.endpoints.governanceMetrics.lockedNeurons),
+                        this.fetchJSON(this.endpoints.governanceMetrics.totalMaturity),
+                        this.fetchJSON(this.endpoints.governanceMetrics.stakedMaturity),
+                        this.fetchJSON(this.endpoints.governanceMetrics.dissolvingStakedMaturity),
+                        this.fetchJSON(this.endpoints.governanceMetrics.lockedStakedMaturity),
+                        this.fetchJSON(this.endpoints.communityFund),
+                        this.fetchJSON(this.endpoints.communityMaturity)
+                    ]);
+                    
+                    // Process and store data
+                    this.processData({
+                        totalSupply,
+                        circulatingSupply,
+                        dailyStats,
+                        dissolvingNeurons,
+                        lockedNeurons,
+                        totalMaturity,
+                        stakedMaturity,
+                        dissolvingStakedMaturity,
+                        lockedStakedMaturity,
+                        communityFund,
+                        communityMaturity
+                    });
+                    
+                    this.hideError();
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    this.showError('Failed to fetch data from Internet Computer APIs');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+            
+            /**
+             * Fetch JSON data from an endpoint with error handling
+             */
+            async fetchJSON(url) {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            }
+            
+            /**
+             * Process raw API data into structured metrics
+             */
+            processData(rawData) {
+                // Convert e8s to ICP (÷ 100,000,000)
+                const e8sToICP = (e8s) => e8s / 100000000;
+                
+                // Extract total supply
+                this.totalSupply = rawData.totalSupply.total_supply_e8s ? 
+                    e8sToICP(rawData.totalSupply.total_supply_e8s) : 
+                    e8sToICP(rawData.totalSupply);
+                
+                // Calculate liquid supply
+                const circulatingSupply = rawData.circulatingSupply.circulating_supply_e8s ? 
+                    e8sToICP(rawData.circulatingSupply.circulating_supply_e8s) : 
+                    e8sToICP(rawData.circulatingSupply);
+                
+                // Get staked amount from daily stats
+                const stakedAmount = e8sToICP(rawData.dailyStats.data[rawData.dailyStats.data.length - 1].governance_total_locked_e8s);
+                
+                // Calculate liquid (Total - Staked)
+                const liquidAmount = this.totalSupply - stakedAmount;
+                
+                // Process governance bucket data
+                const dissolvingBuckets = this.processBuckets(rawData.dissolvingNeurons.data);
+                const lockedBuckets = this.processBuckets(rawData.lockedNeurons.data);
+                const dissolvingMaturityBuckets = this.processBuckets(rawData.dissolvingStakedMaturity.data);
+                const lockedMaturityBuckets = this.processBuckets(rawData.lockedStakedMaturity.data);
+                
+                // Calculate maturity values
+                const totalMaturity = e8sToICP(rawData.totalMaturity.data[rawData.totalMaturity.data.length - 1].governance_total_maturity_e8s_equivalent);
+                const totalStakedMaturity = e8sToICP(rawData.stakedMaturity.data[rawData.stakedMaturity.data.length - 1].governance_total_staked_maturity_e8s_equivalent);
+                const unlockedMaturity = totalMaturity - totalStakedMaturity;
+                
+                // Calculate burned amounts
+                const latestDailyStats = rawData.dailyStats.data[rawData.dailyStats.data.length - 1];
+                const burnedFees = e8sToICP(latestDailyStats.icp_burned_fees);
+                const burnedCycles = e8sToICP(latestDailyStats.total_cycle_burn_till_date);
+                const totalBurned = burnedFees + burnedCycles;
+                
+                // Get community fund data
+                const communityFundStaked = rawData.communityFund.data && rawData.communityFund.data.length > 0 ? 
+                    rawData.communityFund.data[rawData.communityFund.data.length - 1].community_fund_total_staked / 100000000 : 0;
+                const communityFundMaturity = rawData.communityMaturity.data && rawData.communityMaturity.data.length > 0 ? 
+                    rawData.communityMaturity.data[rawData.communityMaturity.data.length - 1].community_fund_total_maturity / 100000000 : 0;
+                
+                // Store processed data
+                this.data.clear();
+                
+                // Main metrics
+                this.data.set('total', { value: this.totalSupply, type: 'main-row' });
+                this.data.set('liquid', { value: liquidAmount, type: 'main-row' });
+                this.data.set('staked', { value: stakedAmount, type: 'main-row', expandable: true });
+                this.data.set('maturity', { value: totalMaturity, type: 'main-row', expandable: true });
+                this.data.set('burned', { value: totalBurned, type: 'main-row', expandable: true });
+                
+                // Staked breakdown
+                this.data.set('staked.unlocking', { value: dissolvingBuckets.total, type: 'sub-row', parent: 'staked', expandable: true });
+                this.data.set('staked.locked', { value: lockedBuckets.total, type: 'sub-row', parent: 'staked', expandable: true });
+                this.data.set('staked.community', { value: communityFundStaked, type: 'sub-row', parent: 'staked' });
+                
+                // Age breakdowns for staked unlocking
+                this.addAgeBreakdown('staked.unlocking', dissolvingBuckets.ageRanges);
+                
+                // Age breakdowns for staked locked  
+                this.addAgeBreakdown('staked.locked', lockedBuckets.ageRanges);
+                
+                // Maturity breakdown
+                this.data.set('maturity.unlocked', { value: unlockedMaturity, type: 'sub-row', parent: 'maturity' });
+                this.data.set('maturity.unlocking', { value: dissolvingMaturityBuckets.total, type: 'sub-row', parent: 'maturity', expandable: true });
+                this.data.set('maturity.locked', { value: lockedMaturityBuckets.total, type: 'sub-row', parent: 'maturity', expandable: true });
+                this.data.set('maturity.community', { value: communityFundMaturity, type: 'sub-row', parent: 'maturity' });
+                
+                // Age breakdowns for maturity
+                this.addAgeBreakdown('maturity.unlocking', dissolvingMaturityBuckets.ageRanges);
+                this.addAgeBreakdown('maturity.locked', lockedMaturityBuckets.ageRanges);
+                
+                // Burned breakdown
+                this.data.set('burned.fees', { value: burnedFees, type: 'sub-row', parent: 'burned' });
+                this.data.set('burned.cycles', { value: burnedCycles, type: 'sub-row', parent: 'burned' });
+            }
+            
+            /**
+             * Process governance bucket data and calculate age ranges
+             */
+            processBuckets(bucketData) {
+                if (!bucketData || bucketData.length === 0) {
+                    return { total: 0, ageRanges: {} };
+                }
+                
+                const latestData = bucketData[bucketData.length - 1];
+                const buckets = latestData.governance_dissolving_neurons_e8s || 
+                              latestData.governance_not_dissolving_neurons_e8s || 
+                              latestData.governance_dissolving_neurons_staked_maturity_e8s_equivalent ||
+                              latestData.governance_not_dissolving_neurons_staked_maturity_e8s_equivalent ||
+                              {};
+                
+                const e8sToICP = (e8s) => e8s / 100000000;
+                let total = 0;
+                
+                // Age range definitions (in months)
+                const ageRanges = {
+                    '0-1 years': { min: 0, max: 12, value: 0 },
+                    '1-2 years': { min: 12, max: 24, value: 0 },
+                    '2-3 years': { min: 24, max: 36, value: 0 },
+                    '3-4 years': { min: 36, max: 48, value: 0 },
+                    '4-5 years': { min: 48, max: 60, value: 0 },
+                    '5-6 years': { min: 60, max: 72, value: 0 },
+                    '6-7 years': { min: 72, max: 84, value: 0 },
+                    '7-8 years': { min: 84, max: 96, value: 0 },
+                    '8+ years': { min: 96, max: Infinity, value: 0 }
+                };
+                
+                // Sum buckets for each age range
+                Object.keys(buckets).forEach(key => {
+                    const monthMatch = key.match(/ge=(\d+)/);
+                    if (monthMatch) {
+                        const months = parseInt(monthMatch[1]);
+                        const value = e8sToICP(buckets[key]);
+                        total += value;
+                        
+                        // Find appropriate age range
+                        Object.keys(ageRanges).forEach(range => {
+                            const ageRange = ageRanges[range];
+                            if (months >= ageRange.min && months < ageRange.max) {
+                                ageRange.value += value;
+                            }
+                        });
+                    }
+                });
+                
+                return { total, ageRanges };
+            }
+            
+            /**
+             * Add age breakdown data to the metrics
+             */
+            addAgeBreakdown(parentKey, ageRanges) {
+                Object.keys(ageRanges).forEach(ageRange => {
+                    const key = `${parentKey}.${ageRange}`;
+                    this.data.set(key, {
+                        value: ageRanges[ageRange].value,
+                        type: 'age-row',
+                        parent: parentKey
+                    });
+                });
+            }
+            
+            /**
+             * Calculate percentage relative to total supply
+             */
+            calculatePercentage(value) {
+                if (this.totalSupply === 0) return 0;
+                return (value / this.totalSupply) * 100;
+            }
+            
+            /**
+             * Format number with comma separators
+             */
+            formatNumber(value) {
+                return Math.round(value).toLocaleString();
+            }
+            
+            /**
+             * Format percentage with 1 decimal place
+             */
+            formatPercentage(value) {
+                if (value === 100) return '100.0%';
+                return value.toFixed(1) + '%';
+            }
+            
+            /**
+             * Render the metrics table
+             */
+            renderTable() {
+                const tbody = document.getElementById('metricsTableBody');
+                tbody.innerHTML = '';
+                
+                // Define the display order
+                const displayOrder = [
+                    'total',
+                    'liquid', 
+                    'staked',
+                    'staked.unlocking',
+                    'staked.unlocking.0-1 years',
+                    'staked.unlocking.1-2 years',
+                    'staked.unlocking.2-3 years',
+                    'staked.unlocking.3-4 years',
+                    'staked.unlocking.4-5 years',
+                    'staked.unlocking.5-6 years',
+                    'staked.unlocking.6-7 years',
+                    'staked.unlocking.7-8 years',
+                    'staked.unlocking.8+ years',
+                    'staked.locked',
+                    'staked.locked.0-1 years',
+                    'staked.locked.1-2 years',
+                    'staked.locked.2-3 years',
+                    'staked.locked.3-4 years',
+                    'staked.locked.4-5 years',
+                    'staked.locked.5-6 years',
+                    'staked.locked.6-7 years',
+                    'staked.locked.7-8 years',
+                    'staked.locked.8+ years',
+                    'staked.community',
+                    'maturity',
+                    'maturity.unlocked',
+                    'maturity.unlocking',
+                    'maturity.unlocking.0-1 years',
+                    'maturity.unlocking.1-2 years',
+                    'maturity.unlocking.2-3 years',
+                    'maturity.unlocking.3-4 years',
+                    'maturity.unlocking.4-5 years',
+                    'maturity.unlocking.5-6 years',
+                    'maturity.unlocking.6-7 years',
+                    'maturity.unlocking.7-8 years',
+                    'maturity.unlocking.8+ years',
+                    'maturity.locked',
+                    'maturity.locked.0-1 years',
+                    'maturity.locked.1-2 years',
+                    'maturity.locked.2-3 years',
+                    'maturity.locked.3-4 years',
+                    'maturity.locked.4-5 years',
+                    'maturity.locked.5-6 years',
+                    'maturity.locked.6-7 years',
+                    'maturity.locked.7-8 years',
+                    'maturity.locked.8+ years',
+                    'maturity.community',
+                    'burned',
+                    'burned.fees',
+                    'burned.cycles'
+                ];
+                
+                displayOrder.forEach(key => {
+                    const metric = this.data.get(key);
+                    if (metric && this.shouldShowRow(key)) {
+                        const row = this.createTableRow(key, metric);
+                        tbody.appendChild(row);
+                    }
+                });
+            }
+            
+            /**
+             * Check if a row should be displayed based on expansion state
+             */
+            shouldShowRow(key) {
+                const parts = key.split('.');
+                if (parts.length === 1) return true; // Always show top-level rows
+                
+                // Check if parent is expanded
+                for (let i = 1; i < parts.length; i++) {
+                    const parentKey = parts.slice(0, i).join('.');
+                    if (this.data.get(parentKey)?.expandable && !this.expandedRows.has(parentKey)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            /**
+             * Create a table row element
+             */
+            createTableRow(key, metric) {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-green-900 hover:bg-opacity-20 transition-colors';
+                
+                // Label cell
+                const labelCell = document.createElement('td');
+                labelCell.className = `py-2 px-2 ${metric.type}`;
+                
+                const displayName = this.getDisplayName(key);
+                
+                if (metric.expandable) {
+                    labelCell.className += ' expandable';
+                    const isExpanded = this.expandedRows.has(key);
+                    
+                    const expandIcon = document.createElement('span');
+                    expandIcon.className = `expand-icon ${isExpanded ? 'expanded' : ''}`;
+                    expandIcon.innerHTML = '▶';
+                    
+                    labelCell.appendChild(expandIcon);
+                    labelCell.appendChild(document.createTextNode(displayName));
+                    
+                    labelCell.addEventListener('click', () => {
+                        this.toggleExpand(key);
+                    });
+                } else {
+                    labelCell.textContent = displayName;
+                }
+                
+                // Value cell
+                const valueCell = document.createElement('td');
+                valueCell.className = 'py-2 px-2 text-right font-mono';
+                valueCell.textContent = this.formatNumber(metric.value);
+                
+                // Percentage cell
+                const percentageCell = document.createElement('td');
+                percentageCell.className = 'py-2 px-2 text-right font-mono';
+                
+                if (key === 'total') {
+                    percentageCell.textContent = '100.0%';
+                } else {
+                    const percentage = this.calculatePercentage(metric.value);
+                    percentageCell.textContent = this.formatPercentage(percentage);
+                }
+                
+                row.appendChild(labelCell);
+                row.appendChild(valueCell);
+                row.appendChild(percentageCell);
+                
+                return row;
+            }
+            
+            /**
+             * Get display name for a metric key
+             */
+            getDisplayName(key) {
+                const displayNames = {
+                    'total': 'Total',
+                    'liquid': 'Liquid',
+                    'staked': 'Staked',
+                    'staked.unlocking': 'Unlocking',
+                    'staked.locked': 'Locked',
+                    'staked.community': 'Community',
+                    'maturity': 'Maturity',
+                    'maturity.unlocked': 'Unlocked',
+                    'maturity.unlocking': 'Unlocking',
+                    'maturity.locked': 'Locked',
+                    'maturity.community': 'Community',
+                    'burned': 'Burned',
+                    'burned.fees': 'Fees',
+                    'burned.cycles': 'Cycles'
+                };
+                
+                // Handle age ranges
+                if (key.includes('0-1 years')) return '0-1 years';
+                if (key.includes('1-2 years')) return '1-2 years';
+                if (key.includes('2-3 years')) return '2-3 years';
+                if (key.includes('3-4 years')) return '3-4 years';
+                if (key.includes('4-5 years')) return '4-5 years';
+                if (key.includes('5-6 years')) return '5-6 years';
+                if (key.includes('6-7 years')) return '6-7 years';
+                if (key.includes('7-8 years')) return '7-8 years';
+                if (key.includes('8+ years')) return '8+ years';
+                
+                return displayNames[key] || key;
+            }
+            
+            /**
+             * Toggle expansion state of a row
+             */
+            toggleExpand(key) {
+                if (this.expandedRows.has(key)) {
+                    this.expandedRows.delete(key);
+                } else {
+                    this.expandedRows.add(key);
+                }
+                this.renderTable();
+            }
+            
+            /**
+             * Show/hide loading indicator
+             */
+            showLoading(show) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                loadingIndicator.style.display = show ? 'block' : 'none';
+                this.isLoading = show;
+            }
+            
+            /**
+             * Show error message
+             */
+            showError(message) {
+                const errorDisplay = document.getElementById('errorDisplay');
+                errorDisplay.textContent = message;
+                errorDisplay.classList.remove('hidden');
+            }
+            
+            /**
+             * Hide error message
+             */
+            hideError() {
+                const errorDisplay = document.getElementById('errorDisplay');
+                errorDisplay.classList.add('hidden');
+            }
+            
+            /**
+             * Update last updated timestamp
+             */
+            updateTimestamp() {
+                const lastUpdated = document.getElementById('lastUpdated');
+                const now = new Date();
+                lastUpdated.textContent = `Last updated: ${now.toLocaleString()}`;
+            }
+        }
+        
+        // Initialize the dashboard when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboard = new ICPMetricsDashboard();
+            dashboard.init().catch(error => {
+                console.error('Failed to initialize dashboard:', error);
+            });
+        });
+    </script>
+</body>
+</html>
