@@ -198,47 +198,64 @@
              * Process raw API data into structured metrics
              */
             processData(rawData) {
-                // Convert e8s to ICP (÷ 100,000,000)
-                const e8sToICP = (e8s) => e8s / 100000000;
-                
-                // Extract total supply
-                this.totalSupply = rawData.totalSupply.total_supply_e8s ? 
-                    e8sToICP(rawData.totalSupply.total_supply_e8s) : 
-                    e8sToICP(rawData.totalSupply);
-                
-                // Calculate liquid supply
-                const circulatingSupply = rawData.circulatingSupply.circulating_supply_e8s ? 
-                    e8sToICP(rawData.circulatingSupply.circulating_supply_e8s) : 
-                    e8sToICP(rawData.circulatingSupply);
-                
-                // Get staked amount from daily stats
-                const stakedAmount = e8sToICP(rawData.dailyStats.data[rawData.dailyStats.data.length - 1].governance_total_locked_e8s);
-                
-                // Calculate liquid (Total - Staked)
-                const liquidAmount = this.totalSupply - stakedAmount;
-                
-                // Process governance bucket data
-                const dissolvingBuckets = this.processBuckets(rawData.dissolvingNeurons.data);
-                const lockedBuckets = this.processBuckets(rawData.lockedNeurons.data);
-                const dissolvingMaturityBuckets = this.processBuckets(rawData.dissolvingStakedMaturity.data);
-                const lockedMaturityBuckets = this.processBuckets(rawData.lockedStakedMaturity.data);
-                
-                // Calculate maturity values
-                const totalMaturity = e8sToICP(rawData.totalMaturity.data[rawData.totalMaturity.data.length - 1].governance_total_maturity_e8s_equivalent);
-                const totalStakedMaturity = e8sToICP(rawData.stakedMaturity.data[rawData.stakedMaturity.data.length - 1].governance_total_staked_maturity_e8s_equivalent);
-                const unlockedMaturity = totalMaturity - totalStakedMaturity;
-                
-                // Calculate burned amounts
-                const latestDailyStats = rawData.dailyStats.data[rawData.dailyStats.data.length - 1];
-                const burnedFees = e8sToICP(latestDailyStats.icp_burned_fees);
-                const burnedCycles = e8sToICP(latestDailyStats.total_cycle_burn_till_date);
-                const totalBurned = burnedFees + burnedCycles;
-                
-                // Get community fund data
-                const communityFundStaked = rawData.communityFund.data && rawData.communityFund.data.length > 0 ? 
-                    rawData.communityFund.data[rawData.communityFund.data.length - 1].community_fund_total_staked / 100000000 : 0;
-                const communityFundMaturity = rawData.communityMaturity.data && rawData.communityMaturity.data.length > 0 ? 
-                    rawData.communityMaturity.data[rawData.communityMaturity.data.length - 1].community_fund_total_maturity / 100000000 : 0;
+                try {
+                    // Convert e8s to ICP (÷ 100,000,000)
+                    const e8sToICP = (e8s) => (e8s || 0) / 100000000;
+                    
+                    // Safe data extraction with fallbacks
+                    const safeGetLatestValue = (data, field) => {
+                        if (!data || !data.data || !Array.isArray(data.data) || data.data.length === 0) {
+                            console.warn(`No data available for ${field}`);
+                            return 0;
+                        }
+                        const latest = data.data[data.data.length - 1];
+                        return latest[field] || 0;
+                    };
+                    
+                    // Extract total supply with multiple fallback formats
+                    let totalSupplyE8s = 0;
+                    if (rawData.totalSupply) {
+                        totalSupplyE8s = rawData.totalSupply.total_supply_e8s || 
+                                       rawData.totalSupply.totalSupply || 
+                                       rawData.totalSupply;
+                    }
+                    this.totalSupply = e8sToICP(totalSupplyE8s);
+                    
+                    // Extract circulating supply with fallbacks
+                    let circulatingSupplyE8s = 0;
+                    if (rawData.circulatingSupply) {
+                        circulatingSupplyE8s = rawData.circulatingSupply.circulating_supply_e8s || 
+                                             rawData.circulatingSupply.circulatingSupply || 
+                                             rawData.circulatingSupply;
+                    }
+                    
+                    // Get staked amount from daily stats with safe extraction
+                    const stakedAmount = e8sToICP(safeGetLatestValue(rawData.dailyStats, 'governance_total_locked_e8s'));
+                    
+                    // Calculate liquid (Total - Staked)
+                    const liquidAmount = this.totalSupply - stakedAmount;
+                    
+                    // Process governance bucket data with safe extraction
+                    const dissolvingBuckets = this.processBuckets(rawData.dissolvingNeurons);
+                    const lockedBuckets = this.processBuckets(rawData.lockedNeurons);
+                    const dissolvingMaturityBuckets = this.processBuckets(rawData.dissolvingStakedMaturity);
+                    const lockedMaturityBuckets = this.processBuckets(rawData.lockedStakedMaturity);
+                    
+                    // Calculate maturity values with safe extraction
+                    const totalMaturity = e8sToICP(safeGetLatestValue(rawData.totalMaturity, 'governance_total_maturity_e8s_equivalent'));
+                    const totalStakedMaturity = e8sToICP(safeGetLatestValue(rawData.stakedMaturity, 'governance_total_staked_maturity_e8s_equivalent'));
+                    const unlockedMaturity = Math.max(0, totalMaturity - totalStakedMaturity);
+                    
+                    // Calculate burned amounts with safe extraction
+                    const burnedFees = e8sToICP(safeGetLatestValue(rawData.dailyStats, 'icp_burned_fees'));
+                    const burnedCycles = e8sToICP(safeGetLatestValue(rawData.dailyStats, 'total_cycle_burn_till_date'));
+                    const totalBurned = burnedFees + burnedCycles;
+                    
+                    // Get community fund data with safe extraction
+                    const communityFundStaked = rawData.communityFund && rawData.communityFund.data && Array.isArray(rawData.communityFund.data) && rawData.communityFund.data.length > 0 ? 
+                        e8sToICP(rawData.communityFund.data[rawData.communityFund.data.length - 1].community_fund_total_staked || 0) : 0;
+                    const communityFundMaturity = rawData.communityMaturity && rawData.communityMaturity.data && Array.isArray(rawData.communityMaturity.data) && rawData.communityMaturity.data.length > 0 ? 
+                        e8sToICP(rawData.communityMaturity.data[rawData.communityMaturity.data.length - 1].community_fund_total_maturity || 0) : 0;
                 
                 // Store processed data
                 this.data.clear();
