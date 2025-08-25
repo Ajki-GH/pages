@@ -10,56 +10,57 @@
             font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, "Courier New", monospace;
         }
         
-        /* Dynamic scaling typography */
+        /* MAXIMUM scaling typography */
         .title { 
-            font-size: clamp(1.5rem, 8vw, 4rem); 
+            font-size: clamp(2.5rem, 15vw, 6rem); 
             font-weight: 700; 
-            line-height: 1; 
-            letter-spacing: 0.05em;
+            line-height: 0.9; 
+            letter-spacing: 0.02em;
         }
         .subtitle { 
-            font-size: clamp(0.75rem, 3vw, 1.25rem); 
+            font-size: clamp(1rem, 4.5vw, 2rem); 
             font-weight: 400; 
             opacity: 0.7; 
-            line-height: 1;
-            margin-top: clamp(0.25rem, 1vw, 0.5rem);
+            line-height: 0.9;
+            margin-top: clamp(0.5rem, 1.5vw, 1rem);
+            margin-bottom: clamp(1rem, 3vw, 2rem);
         }
         
-        /* Responsive table styling */
+        /* MAXIMUM table scaling */
         .main-row { 
             font-weight: 600; 
-            font-size: clamp(0.875rem, 2.5vw, 1.125rem); 
+            font-size: clamp(1.125rem, 4vw, 2rem); 
             font-family: inherit; 
-            line-height: 1.2;
+            line-height: 1.1;
         }
         .sub-row { 
             font-weight: 500; 
-            font-size: clamp(0.8125rem, 2.25vw, 1rem); 
+            font-size: clamp(1rem, 3.75vw, 1.875rem); 
             font-family: inherit; 
-            line-height: 1.2;
+            line-height: 1.1;
         }
         .sub-row > div { 
-            padding-left: clamp(1rem, 4vw, 1.5rem); 
+            padding-left: clamp(1.5rem, 5vw, 2.5rem); 
         }
         .age-row { 
             font-weight: 400; 
-            font-size: clamp(0.75rem, 2vw, 0.9375rem); 
+            font-size: clamp(0.9375rem, 3.5vw, 1.75rem); 
             font-family: inherit; 
-            line-height: 1.2;
+            line-height: 1.1;
         }
         .age-row > div { 
-            padding-left: clamp(2rem, 6vw, 3rem); 
+            padding-left: clamp(3rem, 8vw, 5rem); 
         }
         
-        /* Table responsive styling */
+        /* MAXIMUM table spacing */
         .table-header {
-            font-size: clamp(0.8125rem, 2.25vw, 1rem);
+            font-size: clamp(1rem, 3.75vw, 1.875rem);
             font-weight: 600;
-            padding: clamp(0.5rem, 2vw, 0.75rem) clamp(0.25rem, 1vw, 0.5rem);
+            padding: clamp(1rem, 3vw, 2rem) clamp(0.5rem, 1.5vw, 1rem);
+            line-height: 1.1;
         }
         .table-cell {
-            padding: clamp(0.25rem, 1vw, 0.5rem) clamp(0.25rem, 1vw, 0.5rem);
-            font-size: clamp(0.75rem, 2vw, 0.9375rem);
+            padding: clamp(0.625rem, 2vw, 1.25rem) clamp(0.5rem, 1.5vw, 1rem);
         }
         
         .expandable { 
@@ -72,11 +73,15 @@
         .expand-icon { 
             transition: transform 0.2s ease; 
             display: inline-block; 
-            margin-left: clamp(0.25rem, 1vw, 0.5rem); 
+            margin-left: clamp(0.5rem, 1.5vw, 1rem); 
             flex-shrink: 0;
         }
         .expand-icon.expanded { 
             transform: rotate(180deg); 
+        }
+        .expand-icon svg {
+            width: clamp(14px, 2vw, 18px);
+            height: clamp(14px, 2vw, 18px);
         }
         .metric-value { 
             font-family: inherit; 
@@ -84,23 +89,40 @@
             white-space: nowrap;
         }
         
-        /* Viewport optimization */
+        /* MAXIMUM viewport usage */
         .container {
             min-height: 100vh;
             width: 100%;
-            padding: clamp(0.5rem, 2vw, 1rem);
+            padding: clamp(0.5rem, 1.5vw, 1rem);
+            display: flex;
+            flex-direction: column;
         }
         .content-wrapper {
             width: 100%;
             max-width: 900px;
             margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Table grows to fill space */
+        #metricsTable {
+            flex: 1;
+        }
+        
+        /* MAXIMUM timestamp */
+        #lastUpdated {
+            font-size: clamp(0.875rem, 2.5vw, 1.25rem);
+            margin-top: clamp(1rem, 2.5vw, 1.5rem);
+            flex-shrink: 0;
         }
     </style>
 </head>
-<body class="bg-black text-green-400 w-full h-screen overflow-auto font-mono">
-    <div class="container flex flex-col justify-start">
+<body class="bg-black text-green-400 font-mono">
+    <div class="container">
         <div class="content-wrapper">
-            <div class="text-center mb-4">
+            <div class="text-center">
                 <h1 class="title">ICP.SUPPLY</h1>
                 <p class="subtitle">no BS, just data</p>
             </div>
@@ -110,15 +132,15 @@
                 <thead>
                     <tr class="border-b border-green-400/60">
                         <th class="text-left table-header">Label</th>
-                        <th class="text-right table-header min-w-[140px] metric-value">Value</th>
-                        <th class="text-right table-header min-w-[90px] metric-value">Percentage</th>
+                        <th class="text-right table-header metric-value">Value</th>
+                        <th class="text-right table-header metric-value">%</th>
                     </tr>
                 </thead>
                 <tbody id="metricsTableBody"></tbody>
             </table>
 
             <!-- Last updated timestamp -->
-            <div id="lastUpdated" class="text-center mt-4 opacity-70" style="font-size: clamp(0.6875rem, 1.75vw, 0.875rem);"></div>
+            <div id="lastUpdated" class="text-center opacity-70"></div>
         </div>
     </div>
 
@@ -211,7 +233,7 @@
                 const isOpen=this.expandedRows.has(key);
                 const icon=document.createElement('span');
                 icon.className=`expand-icon ${isOpen?'expanded':''}`;
-                icon.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" style="color: rgb(67, 188, 67);"><path d="m6 9 6 6 6-6"></path></svg>';
+                icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" style="color: rgb(67, 188, 67);"><path d="m6 9 6 6 6-6"></path></svg>';
                 wrap.appendChild(icon);
                 wrap.addEventListener('click',()=>{ this.toggleExpand(key); });
             }
