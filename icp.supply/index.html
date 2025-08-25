@@ -270,6 +270,13 @@
             tdLabel.className=`table-cell`;
             const wrap=document.createElement('div');
             wrap.className = metric.expandable ? 'expandable' : '';
+            
+            // Add indentation based on row type
+            if(metric.type === 'sub-row'){
+                wrap.style.paddingLeft = '2rem';
+            } else if(metric.type === 'age-row'){
+                wrap.style.paddingLeft = '4rem';
+            }
 
             const nameSpan=document.createElement('span');
             nameSpan.textContent=this.getDisplayName(key);
