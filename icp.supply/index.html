@@ -97,11 +97,15 @@
             padding-left: clamp(3rem, 8vw, 5rem); 
         }
         
-        /* MAXIMUM table spacing with minimal gaps */
+        /* Simple fixed table spacing */
         .table-cell {
-            padding: clamp(0.75rem, 2.5vw, 1.5rem) clamp(0.25rem, 0.75vw, 0.5rem);
+            padding: 0.125rem 0.25rem;
             white-space: nowrap;
             overflow: visible;
+        }
+        
+        .main-row .table-cell {
+            padding: 0.15rem 0.15rem;
         }
         
         .expandable { 
@@ -273,9 +277,9 @@
             
             // Add indentation based on row type
             if(metric.type === 'sub-row'){
-                wrap.style.paddingLeft = '2rem';
+                wrap.style.paddingLeft = '1rem';
             } else if(metric.type === 'age-row'){
-                wrap.style.paddingLeft = '4rem';
+                wrap.style.paddingLeft = '2rem';
             }
 
             const nameSpan=document.createElement('span');
