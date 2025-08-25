@@ -1,318 +1,194 @@
 <!DOCTYPE html>
-<!--
-ICP Supply Metrics Table Layout & Data Sources (Parent/Child hierarchy)
-
-DISPLAY BEHAVIOR
-- Main rows (Total, Liquid, Staked, Maturity, Burned) are EXPANDED by default.
-- Sub-rows (e.g., Unlocking, Locked, Unlocked, Community, Fees, Cycles) are COLLAPSED by default unless expanded by the user.
-- Expand/collapse is indicated with a suffix chevron icon. No prefix arrows are shown on EXPANDABLE rows.
-- Non-expandable sub/age rows are visually indented via padding; they include a small text prefix (↳ for sub, ↳↳ for age) for readability.
-
-DATA MAP
-Parent: Total
-  - Endpoint: https://ledger-api.internetcomputer.org/supply/total/latest
-
-Parent: Liquid
-  - Endpoint: https://ledger-api.internetcomputer.org/supply/circulating/latest
-  - Calculation: Total - Staked
-
-Parent: Staked {expandable}
-  - Endpoint: https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json
-  - Value: governance_total_locked_e8s
-  - Child: Unlocking {expandable}
-    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_e8s
-    - Calculation: sum of all buckets (0–96 months) / 100,000,000
-    - Child: 0-1 years (sum ge=0,lt=6 and ge=6,lt=12)
-    - Child: 1-2 years (sum ge=12,lt=18 and ge=18,lt=24)
-    - Child: 2-3 years (sum ge=24,lt=30 and ge=30,lt=36)
-    - Child: 3-4 years (sum ge=36,lt=42 and ge=42,lt=48)
-    - Child: 4-5 years (sum ge=48,lt=54 and ge=54,lt=60)
-    - Child: 5-6 years (sum ge=60,lt=66 and ge=66,lt=72)
-    - Child: 6-7 years (sum ge=72,lt=78 and ge=78,lt=84)
-    - Child: 7-8 years (sum ge=84,lt=90 and ge=90,lt=96)
-    - Child: 8+ years (sum ge>=96)
-  - Child: Locked {expandable}
-    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_e8s
-    - Calculation: sum of all buckets (0–102 months) / 100,000,000
-    - Child: 0-1 years (sum ge=0,lt=6 and ge=6,lt=12)
-    - Child: 1-2 years (sum ge=12,lt=18 and ge=18,lt=24)
-    - Child: 2-3 years (sum ge=24,lt=30 and ge=30,lt=36)
-    - Child: 3-4 years (sum ge=36,lt=42 and ge=42,lt=48)
-    - Child: 4-5 years (sum ge=48,lt=54 and ge=54,lt=60)
-    - Child: 5-6 years (sum ge=60,lt=66 and ge=66,lt=72)
-    - Child: 6-7 years (sum ge=72,lt=78 and ge=78,lt=84)
-    - Child: 7-8 years (sum ge=84,lt=90 and ge=90,lt=96)
-    - Child: 8+ years (sum ge>=96)
-  - Child: Community (non-expandable)
-    - Endpoint: https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-staked?format=json&step=7200
-
-Parent: Maturity {expandable}
-  - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_maturity_e8s_equivalent
-  - Calculation: (governance_total_maturity_e8s_equivalent + governance_total_staked_maturity_e8s_equivalent) / 100,000,000
-  - Child: Unlocked (non-expandable)
-    - Calculation: total_maturity - total_staked_maturity
-  - Child: Unlocking {expandable}
-    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_staked_maturity_e8s_equivalent
-    - Calculation: sum of all buckets (0–96 months) / 100,000,000
-    - Child: 0-1 years … 8+ years (same month bucket logic as Staked → Unlocking)
-  - Child: Locked {expandable}
-    - Endpoint: https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_staked_maturity_e8s_equivalent
-    - Calculation: sum of all buckets (0–102 months) / 100,000,000
-    - Child: 0-1 years … 8+ years (same month bucket logic as Staked → Locked)
-  - Child: Community (non-expandable)
-    - Endpoint: https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-maturity?format=json&step=7200
-
-Parent: Burned {expandable}
-  - Source: https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json
-  - Calculation: icp_burned_fees + total_cycle_burn_till_date
-  - Child: Fees (non-expandable) → Value: icp_burned_fees
-  - Child: Cycles (non-expandable) → Value: total_cycle_burn_till_date
--->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICP Supply Metrics Dashboard</title>
+    <title>ICP.SUPPLY</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .font-mono {
             font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, "Courier New", monospace;
         }
-        .main-row { font-weight: 600; font-size: 1rem; font-family: inherit; }
-        .sub-row { font-weight: 500; font-size: 0.95rem; padding-left: 1.5rem; font-family: inherit; }
-        .age-row { font-weight: 400; font-size: 0.9rem; padding-left: 3rem; font-family: inherit; }
-        .expandable { cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; }
-        .expand-icon { transition: transform 0.2s ease; display: inline-block; margin-left: 0.5rem; }
-        .expand-icon.expanded { transform: rotate(180deg); }
-        .metric-value { font-family: inherit; font-variant-numeric: tabular-nums; }
+        
+        /* Dynamic scaling typography */
+        .title { 
+            font-size: clamp(1.5rem, 8vw, 4rem); 
+            font-weight: 700; 
+            line-height: 1; 
+            letter-spacing: 0.05em;
+        }
+        .subtitle { 
+            font-size: clamp(0.75rem, 3vw, 1.25rem); 
+            font-weight: 400; 
+            opacity: 0.7; 
+            line-height: 1;
+            margin-top: clamp(0.25rem, 1vw, 0.5rem);
+        }
+        
+        /* Responsive table styling */
+        .main-row { 
+            font-weight: 600; 
+            font-size: clamp(0.875rem, 2.5vw, 1.125rem); 
+            font-family: inherit; 
+            line-height: 1.2;
+        }
+        .sub-row { 
+            font-weight: 500; 
+            font-size: clamp(0.8125rem, 2.25vw, 1rem); 
+            font-family: inherit; 
+            line-height: 1.2;
+        }
+        .sub-row > div { 
+            padding-left: clamp(1rem, 4vw, 1.5rem); 
+        }
+        .age-row { 
+            font-weight: 400; 
+            font-size: clamp(0.75rem, 2vw, 0.9375rem); 
+            font-family: inherit; 
+            line-height: 1.2;
+        }
+        .age-row > div { 
+            padding-left: clamp(2rem, 6vw, 3rem); 
+        }
+        
+        /* Table responsive styling */
+        .table-header {
+            font-size: clamp(0.8125rem, 2.25vw, 1rem);
+            font-weight: 600;
+            padding: clamp(0.5rem, 2vw, 0.75rem) clamp(0.25rem, 1vw, 0.5rem);
+        }
+        .table-cell {
+            padding: clamp(0.25rem, 1vw, 0.5rem) clamp(0.25rem, 1vw, 0.5rem);
+            font-size: clamp(0.75rem, 2vw, 0.9375rem);
+        }
+        
+        .expandable { 
+            cursor: pointer; 
+            user-select: none; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+        }
+        .expand-icon { 
+            transition: transform 0.2s ease; 
+            display: inline-block; 
+            margin-left: clamp(0.25rem, 1vw, 0.5rem); 
+            flex-shrink: 0;
+        }
+        .expand-icon.expanded { 
+            transform: rotate(180deg); 
+        }
+        .metric-value { 
+            font-family: inherit; 
+            font-variant-numeric: tabular-nums; 
+            white-space: nowrap;
+        }
+        
+        /* Viewport optimization */
+        .container {
+            min-height: 100vh;
+            width: 100%;
+            padding: clamp(0.5rem, 2vw, 1rem);
+        }
+        .content-wrapper {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body class="bg-black text-green-400 w-full h-screen overflow-auto font-mono">
-    <div class="w-full h-full flex items-start justify-center py-8">
-        <div class="min-w-[360px] max-w-[900px] w-full mx-auto px-4">
-            <h1 class="text-2xl font-bold mb-6 text-center">ICP Supply Metrics</h1>
+    <div class="container flex flex-col justify-start">
+        <div class="content-wrapper">
+            <div class="text-center mb-4">
+                <h1 class="title">ICP.SUPPLY</h1>
+                <p class="subtitle">no BS, just data</p>
+            </div>
 
             <!-- Metrics Table -->
             <table id="metricsTable" class="w-full" style="border-spacing:0;border-collapse:separate;">
                 <thead>
                     <tr class="border-b border-green-400/60">
-                        <th class="text-left py-3 px-2 font-semibold">Label</th>
-                        <th class="text-right py-3 px-2 font-semibold min-w-[140px] metric-value">Value</th>
-                        <th class="text-right py-3 px-2 font-semibold min-w-[90px] metric-value">Percentage</th>
+                        <th class="text-left table-header">Label</th>
+                        <th class="text-right table-header min-w-[140px] metric-value">Value</th>
+                        <th class="text-right table-header min-w-[90px] metric-value">Percentage</th>
                     </tr>
                 </thead>
                 <tbody id="metricsTableBody"></tbody>
             </table>
 
             <!-- Last updated timestamp -->
-            <div id="lastUpdated" class="text-center mt-4 text-sm opacity-70"></div>
+            <div id="lastUpdated" class="text-center mt-4 opacity-70" style="font-size: clamp(0.6875rem, 1.75vw, 0.875rem);"></div>
         </div>
     </div>
 
     <script>
     class ICPMetricsDashboard {
         constructor(){
-            this.data=new Map();
-            // Main rows expanded by default; sub-rows collapsed by default
-            this.expandedRows=new Set(['staked','maturity','burned']);
-            this.totalSupply=0;
-            this.endpoints={
-                total:'https://ledger-api.internetcomputer.org/supply/total/latest',
-                circulating:'https://ledger-api.internetcomputer.org/supply/circulating/latest',
-                dailyStats:'https://ic-api.internetcomputer.org/api/v3/daily-stats?format=json',
-                governanceMetrics:{
-                    dissolvingNeurons:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_e8s',
-                    lockedNeurons:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_e8s',
-                    totalMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_maturity_e8s_equivalent',
-                    stakedMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_total_staked_maturity_e8s_equivalent',
-                    dissolvingStakedMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_dissolving_neurons_staked_maturity_e8s_equivalent',
-                    lockedStakedMaturity:'https://ic-api.internetcomputer.org/api/v3/governance-metrics/governance_not_dissolving_neurons_staked_maturity_e8s_equivalent'
-                },
-                communityFund:'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-staked?format=json&step=7200',
-                communityMaturity:'https://ic-api.internetcomputer.org/api/v3/metrics/community-fund-total-maturity?format=json&step=7200'
-            };
-        }
-
-        // Build complete table structure so all rows exist immediately
-        loadCompleteDataStructure(){
-            this.totalSupply=0; this.data.clear();
-            this.data.set('total',{value:0,type:'main-row'});
-            this.data.set('liquid',{value:0,type:'main-row'});
-            this.data.set('staked',{value:0,type:'main-row',expandable:true});
-            this.data.set('maturity',{value:0,type:'main-row',expandable:true});
-            this.data.set('burned',{value:0,type:'main-row',expandable:true});
-
-            const ages=['0-1 years','1-2 years','2-3 years','3-4 years','4-5 years','5-6 years','6-7 years','7-8 years','8+ years'];
-
-            // Staked
-            this.data.set('staked.unlocking',{value:0,type:'sub-row',parent:'staked',expandable:true});
-            this.data.set('staked.locked',{value:0,type:'sub-row',parent:'staked',expandable:true});
-            this.data.set('staked.community',{value:0,type:'sub-row',parent:'staked'});
-            ages.forEach(a=>{ this.data.set(`staked.unlocking.${a}`,{value:0,type:'age-row',parent:'staked.unlocking'}); });
-            ages.forEach(a=>{ this.data.set(`staked.locked.${a}`,{value:0,type:'age-row',parent:'staked.locked'}); });
-
-            // Maturity
-            this.data.set('maturity.unlocked',{value:0,type:'sub-row',parent:'maturity'});
-            this.data.set('maturity.unlocking',{value:0,type:'sub-row',parent:'maturity',expandable:true});
-            this.data.set('maturity.locked',{value:0,type:'sub-row',parent:'maturity',expandable:true});
-            this.data.set('maturity.community',{value:0,type:'sub-row',parent:'maturity'});
-            ages.forEach(a=>{ this.data.set(`maturity.unlocking.${a}`,{value:0,type:'age-row',parent:'maturity.unlocking'}); });
-            ages.forEach(a=>{ this.data.set(`maturity.locked.${a}`,{value:0,type:'age-row',parent:'maturity.locked'}); });
-
-            // Burned
-            this.data.set('burned.fees',{value:0,type:'sub-row',parent:'burned'});
-            this.data.set('burned.cycles',{value:0,type:'sub-row',parent:'burned'});
-        }
-
-        // Fetch helpers
-        async fetchJSON(url){
-            try{
-                const res=await fetch(url,{method:'GET',mode:'cors',cache:'no-cache'});
-                if(!res.ok) throw new Error('HTTP '+res.status);
-                return await res.json();
-            }catch(e){
-                console.warn('fetch failed',url,e.message); return {data:[]};
-            }
-        }
-
-        // Convert buckets into totals + age ranges
-        processBuckets(bucketData){
-            if(!bucketData||!Array.isArray(bucketData.data)||bucketData.data.length===0){
-                const emptyAges={'0-1 years':0,'1-2 years':0,'2-3 years':0,'3-4 years':0,'4-5 years':0,'5-6 years':0,'6-7 years':0,'7-8 years':0,'8+ years':0};
-                return {total:0,ageRanges:emptyAges};
-            }
-            const latest=bucketData.data[bucketData.data.length-1];
-            const buckets= latest.governance_dissolving_neurons_e8s
-                          ||latest.governance_not_dissolving_neurons_e8s
-                          ||latest.governance_dissolving_neurons_staked_maturity_e8s_equivalent
-                          ||latest.governance_not_dissolving_neurons_staked_maturity_e8s_equivalent
-                          ||{};
-            const e8=(x)=> (x||0)/100000000;
-            const ranges={
-                '0-1 years':0,'1-2 years':0,'2-3 years':0,'3-4 years':0,'4-5 years':0,'5-6 years':0,'6-7 years':0,'7-8 years':0,'8+ years':0
-            };
-            let total=0;
-            Object.keys(buckets).forEach(k=>{
-                const m=k.match(/ge=(\d+)(?:,lt=(\d+))?/); if(!m) return;
-                const months=parseInt(m[1],10); const val=e8(buckets[k]); total+=val;
-                const push=(label)=>{ranges[label]+=val;};
-                if(months>=0 && months<12){
-                    push('0-1 years');
-                } else if(months>=12 && months<24){ push('1-2 years'); }
-                else if(months>=24 && months<36){ push('2-3 years'); }
-                else if(months>=36 && months<48){ push('3-4 years'); }
-                else if(months>=48 && months<60){ push('4-5 years'); }
-                else if(months>=60 && months<72){ push('5-6 years'); }
-                else if(months>=72 && months<84){ push('6-7 years'); }
-                else if(months>=84 && months<96){ push('7-8 years'); }
-                else if(months>=96){ push('8+ years'); }
-            });
-            return {total,ageRanges:ranges};
-        }
-
-        addAgeBreakdown(parentKey,ages){
-            Object.keys(ages).forEach(label=>{
-                this.data.set(`${parentKey}.${label}`,{value:ages[label],type:'age-row',parent:parentKey});
-            });
-        }
-
-        processData(raw){
-            const e8=(x)=> (x||0)/100000000;
-            const latestVal=(obj,field)=>{
-                if(!obj||!Array.isArray(obj.data)||obj.data.length===0) return 0;
-                const last=obj.data[obj.data.length-1];
-                return e8(last[field]||0);
-            };
-
-            let totalSupplyE8s=0;
-            if(raw.totalSupply){ totalSupplyE8s = raw.totalSupply.total_supply_e8s||raw.totalSupply.totalSupply||raw.totalSupply; }
-            this.totalSupply = e8(totalSupplyE8s);
-
-            const staked = latestVal(raw.dailyStats,'governance_total_locked_e8s');
-            const liquid = Math.max(0, this.totalSupply - staked);
-
-            const dissolving=this.processBuckets(raw.dissolvingNeurons);
-            const locked=this.processBuckets(raw.lockedNeurons);
-
-            const totalMaturity = latestVal(raw.totalMaturity,'governance_total_maturity_e8s_equivalent');
-            const stakedMaturity = latestVal(raw.stakedMaturity,'governance_total_staked_maturity_e8s_equivalent');
-            const unlockedMaturity = Math.max(0, totalMaturity - stakedMaturity);
-            const dissMat=this.processBuckets(raw.dissolvingStakedMaturity);
-            const lockMat=this.processBuckets(raw.lockedStakedMaturity);
-
-            const burnedFees = latestVal(raw.dailyStats,'icp_burned_fees');
-            const burnedCycles = latestVal(raw.dailyStats,'total_cycle_burn_till_date');
-            const totalBurned = burnedFees + burnedCycles;
-
-            const cfStaked = latestVal(raw.communityFund,'community_fund_total_staked');
-            const cfMaturity = latestVal(raw.communityMaturity,'community_fund_total_maturity');
-
-            // Rebuild map with processed values
-            this.data.clear();
-            this.data.set('total',{value:this.totalSupply,type:'main-row'});
-            this.data.set('liquid',{value:liquid,type:'main-row'});
-            this.data.set('staked',{value:staked,type:'main-row',expandable:true});
-            this.data.set('maturity',{value:totalMaturity,type:'main-row',expandable:true});
-            this.data.set('burned',{value:totalBurned,type:'main-row',expandable:true});
-
-            this.data.set('staked.unlocking',{value:dissolving.total,type:'sub-row',parent:'staked',expandable:true});
-            this.addAgeBreakdown('staked.unlocking',dissolving.ageRanges);
-            this.data.set('staked.locked',{value:locked.total,type:'sub-row',parent:'staked',expandable:true});
-            this.addAgeBreakdown('staked.locked',locked.ageRanges);
-            this.data.set('staked.community',{value:cfStaked,type:'sub-row',parent:'staked'});
-
-            this.data.set('maturity.unlocked',{value:unlockedMaturity,type:'sub-row',parent:'maturity'});
-            this.data.set('maturity.unlocking',{value:dissMat.total,type:'sub-row',parent:'maturity',expandable:true});
-            this.addAgeBreakdown('maturity.unlocking',dissMat.ageRanges);
-            this.data.set('maturity.locked',{value:lockMat.total,type:'sub-row',parent:'maturity',expandable:true});
-            this.addAgeBreakdown('maturity.locked',lockMat.ageRanges);
-            this.data.set('maturity.community',{value:cfMaturity,type:'sub-row',parent:'maturity'});
-
-            this.data.set('burned.fees',{value:burnedFees,type:'sub-row',parent:'burned'});
-            this.data.set('burned.cycles',{value:burnedCycles,type:'sub-row',parent:'burned'});
-        }
-
-        async fetchAllData(){
-            const results = await Promise.allSettled([
-                this.fetchJSON(this.endpoints.total),
-                this.fetchJSON(this.endpoints.circulating),
-                this.fetchJSON(this.endpoints.dailyStats),
-                this.fetchJSON(this.endpoints.governanceMetrics.dissolvingNeurons),
-                this.fetchJSON(this.endpoints.governanceMetrics.lockedNeurons),
-                this.fetchJSON(this.endpoints.governanceMetrics.totalMaturity),
-                this.fetchJSON(this.endpoints.governanceMetrics.stakedMaturity),
-                this.fetchJSON(this.endpoints.governanceMetrics.dissolvingStakedMaturity),
-                this.fetchJSON(this.endpoints.governanceMetrics.lockedStakedMaturity),
-                this.fetchJSON(this.endpoints.communityFund),
-                this.fetchJSON(this.endpoints.communityMaturity)
+            this.totalSupply = 537308290;
+            this.expandedRows = new Set(['staked','maturity','burned']);
+            this.data = new Map([
+                ['total',{value:537308290,type:'main-row'}],
+                ['liquid',{value:244946282,type:'main-row'}],
+                ['staked',{value:231787257,type:'main-row',expandable:true}],
+                ['staked.unlocking',{value:26306375,type:'sub-row',parent:'staked',expandable:true}],
+                ['staked.unlocking.0-1 years',{value:8342418,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.1-2 years',{value:4568920,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.2-3 years',{value:3519527,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.3-4 years',{value:2756124,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.4-5 years',{value:1361762,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.5-6 years',{value:1426306,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.6-7 years',{value:2063730,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.7-8 years',{value:1267588,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.unlocking.8+ years',{value:0,type:'age-row',parent:'staked.unlocking'}],
+                ['staked.locked',{value:205480954,type:'sub-row',parent:'staked',expandable:true}],
+                ['staked.locked.0-1 years',{value:16957881,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.1-2 years',{value:12614259,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.2-3 years',{value:8569082,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.3-4 years',{value:5930229,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.4-5 years',{value:2368087,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.5-6 years',{value:370418,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.6-7 years',{value:3359045,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.7-8 years',{value:7733678,type:'age-row',parent:'staked.locked'}],
+                ['staked.locked.8+ years',{value:147578276,type:'age-row',parent:'staked.locked'}],
+                ['maturity',{value:103170915,type:'main-row',expandable:true}],
+                ['maturity.unlocked',{value:91111709,type:'sub-row',parent:'maturity'}],
+                ['maturity.unlocking',{value:1048231,type:'sub-row',parent:'maturity',expandable:true}],
+                ['maturity.unlocking.0-1 years',{value:192664,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.1-2 years',{value:109652,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.2-3 years',{value:125465,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.3-4 years',{value:55015,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.4-5 years',{value:146387,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.5-6 years',{value:234901,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.6-7 years',{value:104007,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.7-8 years',{value:80141,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.8+ years',{value:0,type:'age-row',parent:'maturity.unlocking'}],
+                ['maturity.locked',{value:11010974,type:'sub-row',parent:'maturity',expandable:true}],
+                ['maturity.locked.0-1 years',{value:703332,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.1-2 years',{value:100820,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.2-3 years',{value:103592,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.3-4 years',{value:122795,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.4-5 years',{value:161333,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.5-6 years',{value:80364,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.6-7 years',{value:108477,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.7-8 years',{value:156405,type:'age-row',parent:'maturity.locked'}],
+                ['maturity.locked.8+ years',{value:9473856,type:'age-row',parent:'maturity.locked'}],
+                ['burned',{value:2117660,type:'main-row',expandable:true}],
+                ['burned.fees',{value:2611,type:'sub-row',parent:'burned'}],
+                ['burned.cycles',{value:2115049,type:'sub-row',parent:'burned'}]
             ]);
-            const [totalSupply,circulating,dailyStats,diss,locked,totMat,stkMat,dissMat,lockMat,cfS,cfM] = results.map(r=> r.status==='fulfilled'? r.value : {data:[]});
-            this.processData({
-                totalSupply,
-                circulatingSupply: circulating,
-                dailyStats,
-                dissolvingNeurons: diss,
-                lockedNeurons: locked,
-                totalMaturity: totMat,
-                stakedMaturity: stkMat,
-                dissolvingStakedMaturity: dissMat,
-                lockedStakedMaturity: lockMat,
-                communityFund: cfS,
-                communityMaturity: cfM
-            });
         }
 
         getDisplayName(key){
             const map={
-                'total':'Total','liquid':'Liquid','staked':'Staked',
-                'staked.unlocking':'Unlocking','staked.locked':'Locked','staked.community':'Community',
-                'maturity':'Maturity','maturity.unlocked':'Unlocked','maturity.unlocking':'Unlocking','maturity.locked':'Locked','maturity.community':'Community',
+                'total':'Total','liquid':'Liquid',
+                'staked':'Staked','staked.unlocking':'Unlocking','staked.locked':'Locked',
+                'maturity':'Maturity','maturity.unlocked':'Unlocked','maturity.unlocking':'Unlocking','maturity.locked':'Locked',
                 'burned':'Burned','burned.fees':'Fees','burned.cycles':'Cycles'
             };
             if(key.includes('years')) return key.split('.').pop();
             return map[key]||key;
         }
-        indentPrefix(type){ return type==='sub-row' ? '↳ ' : (type==='age-row' ? '↳↳ ' : ''); }
 
         formatNumber(v){ return v===0 ? '0' : Math.round(v).toLocaleString(); }
         formatPercentage(p){ if(p===0) return '0.0%'; if(p>=100) return '100.0%'; return p.toFixed(1)+'%'; }
@@ -323,13 +199,12 @@ Parent: Burned {expandable}
             tr.className='hover:bg-green-900/20 transition-colors';
 
             const tdLabel=document.createElement('td');
-            tdLabel.className=`py-2 px-2 ${metric.type}`;
+            tdLabel.className=`table-cell ${metric.type}`;
             const wrap=document.createElement('div');
             wrap.className = metric.expandable ? 'expandable' : '';
 
             const nameSpan=document.createElement('span');
-            // Remove prefix arrows on expandable rows; keep on non-expandable for readability
-            nameSpan.textContent=(metric.expandable ? '' : this.indentPrefix(metric.type)) + this.getDisplayName(key);
+            nameSpan.textContent=this.getDisplayName(key);
             wrap.appendChild(nameSpan);
 
             if(metric.expandable){
@@ -343,11 +218,11 @@ Parent: Burned {expandable}
             tdLabel.appendChild(wrap);
 
             const tdVal=document.createElement('td');
-            tdVal.className='py-2 px-2 text-right metric-value';
+            tdVal.className='table-cell text-right metric-value';
             tdVal.textContent=this.formatNumber(metric.value);
 
             const tdPct=document.createElement('td');
-            tdPct.className='py-2 px-2 text-right metric-value';
+            tdPct.className='table-cell text-right metric-value';
             tdPct.textContent = key==='total' ? '100.0%' : this.formatPercentage(this.percentageOfTotal(metric.value));
 
             tr.appendChild(tdLabel); tr.appendChild(tdVal); tr.appendChild(tdPct);
@@ -367,11 +242,13 @@ Parent: Burned {expandable}
             const tbody=document.getElementById('metricsTableBody');
             tbody.innerHTML='';
             const order=[
-                'total','liquid','staked',
+                'total','liquid',
+                'staked',
                 'staked.unlocking','staked.unlocking.0-1 years','staked.unlocking.1-2 years','staked.unlocking.2-3 years','staked.unlocking.3-4 years','staked.unlocking.4-5 years','staked.unlocking.5-6 years','staked.unlocking.6-7 years','staked.unlocking.7-8 years','staked.unlocking.8+ years',
-                'staked.locked','staked.locked.0-1 years','staked.locked.1-2 years','staked.locked.2-3 years','staked.locked.3-4 years','staked.locked.4-5 years','staked.locked.5-6 years','staked.locked.6-7 years','staked.locked.7-8 years','staked.locked.8+ years','staked.community',
-                'maturity','maturity.unlocked','maturity.unlocking','maturity.unlocking.0-1 years','maturity.unlocking.1-2 years','maturity.unlocking.2-3 years','maturity.unlocking.3-4 years','maturity.unlocking.4-5 years','maturity.unlocking.5-6 years','maturity.unlocking.6-7 years','maturity.unlocking.7-8 years','maturity.unlocking.8+ years',
-                'maturity.locked','maturity.locked.0-1 years','maturity.locked.1-2 years','maturity.locked.2-3 years','maturity.locked.3-4 years','maturity.locked.4-5 years','maturity.locked.5-6 years','maturity.locked.6-7 years','maturity.locked.7-8 years','maturity.locked.8+ years','maturity.community',
+                'staked.locked','staked.locked.0-1 years','staked.locked.1-2 years','staked.locked.2-3 years','staked.locked.3-4 years','staked.locked.4-5 years','staked.locked.5-6 years','staked.locked.6-7 years','staked.locked.7-8 years','staked.locked.8+ years',
+                'maturity','maturity.unlocked',
+                'maturity.unlocking','maturity.unlocking.0-1 years','maturity.unlocking.1-2 years','maturity.unlocking.2-3 years','maturity.unlocking.3-4 years','maturity.unlocking.4-5 years','maturity.unlocking.5-6 years','maturity.unlocking.6-7 years','maturity.unlocking.7-8 years','maturity.unlocking.8+ years',
+                'maturity.locked','maturity.locked.0-1 years','maturity.locked.1-2 years','maturity.locked.2-3 years','maturity.locked.3-4 years','maturity.locked.4-5 years','maturity.locked.5-6 years','maturity.locked.6-7 years','maturity.locked.7-8 years','maturity.locked.8+ years',
                 'burned','burned.fees','burned.cycles'
             ];
             order.forEach(k=>{ const m=this.data.get(k); if(m && this.shouldShowRow(k)) tbody.appendChild(this.createTableRow(k,m)); });
@@ -385,15 +262,11 @@ Parent: Burned {expandable}
 
         updateTimestamp(){
             const el=document.getElementById('lastUpdated');
-            el.textContent='Last updated: '+ new Date().toLocaleString();
+            el.textContent='Data loaded: '+ new Date().toLocaleString();
         }
 
         async init(){
-            this.loadCompleteDataStructure();
             this.renderTable();
-            try{ await this.fetchAllData(); this.renderTable(); }catch(e){ console.warn('data fetch error',e.message); }
-            // periodic refresh every 5 min
-            setInterval(async()=>{ try{ await this.fetchAllData(); this.renderTable(); }catch(_){} }, 5*60*1000);
         }
     }
 
@@ -404,4 +277,3 @@ Parent: Burned {expandable}
     </script>
 </body>
 </html>
-
