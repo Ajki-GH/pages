@@ -4,10 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ICP.SUPPLY</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .font-mono {
+        /* Base styles */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: rgb(67, 188, 67);
             font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, "Courier New", monospace;
+        }
+        
+        table {
+            width: 100%;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-left {
+            text-align: left;
+        }
+        
+        .text-right {
+            text-align: right;
         }
         
         /* MAXIMUM scaling typography */
@@ -15,52 +39,69 @@
             font-size: clamp(2.5rem, 15vw, 6rem); 
             font-weight: 700; 
             line-height: 0.9; 
-            letter-spacing: 0.02em;
+            letter-spacing: -0.03em;
+            margin: 0;
+            padding: 0;
         }
         .subtitle { 
             font-size: clamp(1rem, 4.5vw, 2rem); 
             font-weight: 400; 
             opacity: 0.7; 
             line-height: 0.9;
-            margin-top: clamp(0.5rem, 1.5vw, 1rem);
-            margin-bottom: clamp(1rem, 3vw, 2rem);
+            display: block;
+            margin: 0;
+            padding: 0;
+            letter-spacing: -0.02em;
         }
         
-        /* MAXIMUM table scaling */
+        .header-section {
+            margin-bottom: clamp(2rem, 5vw, 4rem);
+            padding-top: 20px;
+        }
+        
+        /* MAXIMUM table scaling - entire rows scale together */
         .main-row { 
             font-weight: 600; 
-            font-size: clamp(1.125rem, 4vw, 2rem); 
+            font-size: clamp(1.5rem, 6vw, 3rem); 
             font-family: inherit; 
             line-height: 1.1;
+        }
+        .main-row td {
+            font-size: clamp(1.5rem, 6vw, 3rem); 
+            font-weight: 600;
         }
         .sub-row { 
             font-weight: 500; 
-            font-size: clamp(1rem, 3.75vw, 1.875rem); 
+            font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
             font-family: inherit; 
             line-height: 1.1;
+        }
+        .sub-row td {
+            font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
+            font-weight: 500;
         }
         .sub-row > div { 
             padding-left: clamp(1.5rem, 5vw, 2.5rem); 
         }
         .age-row { 
             font-weight: 400; 
-            font-size: clamp(0.9375rem, 3.5vw, 1.75rem); 
+            font-size: clamp(1.125rem, 5vw, 2.5rem); 
             font-family: inherit; 
             line-height: 1.1;
+        }
+        .age-row td {
+            font-size: clamp(1.125rem, 5vw, 2.5rem); 
+            font-weight: 400;
         }
         .age-row > div { 
             padding-left: clamp(3rem, 8vw, 5rem); 
         }
         
-        /* MAXIMUM table spacing */
-        .table-header {
-            font-size: clamp(1rem, 3.75vw, 1.875rem);
-            font-weight: 600;
-            padding: clamp(1rem, 3vw, 2rem) clamp(0.5rem, 1.5vw, 1rem);
-            line-height: 1.1;
-        }
+        /* MAXIMUM table spacing with minimal gaps */
         .table-cell {
-            padding: clamp(0.625rem, 2vw, 1.25rem) clamp(0.5rem, 1.5vw, 1rem);
+            padding: clamp(0.75rem, 2.5vw, 1.5rem) clamp(0.25rem, 0.75vw, 0.5rem);
+            white-space: nowrap;
+            overflow: visible;
         }
         
         .expandable { 
@@ -80,20 +121,33 @@
             transform: rotate(180deg); 
         }
         .expand-icon svg {
-            width: clamp(14px, 2vw, 18px);
-            height: clamp(14px, 2vw, 18px);
+            width: clamp(18px, 3vw, 24px);
+            height: clamp(18px, 3vw, 24px);
         }
         .metric-value { 
             font-family: inherit; 
             font-variant-numeric: tabular-nums; 
             white-space: nowrap;
+            overflow: visible;
+        }
+        
+        .table-row-hover {
+            transition: background-color 0.15s ease-in-out;
+        }
+        
+        .table-row-hover:hover {
+            background-color: rgba(5, 46, 22, 0.2);
+        }
+        
+        .opacity-70 {
+            opacity: 0.7;
         }
         
         /* MAXIMUM viewport usage */
         .container {
             min-height: 100vh;
             width: 100%;
-            padding: clamp(0.5rem, 1.5vw, 1rem);
+            padding: 0 clamp(0.5rem, 1.5vw, 1rem);
             display: flex;
             flex-direction: column;
         }
@@ -119,23 +173,15 @@
         }
     </style>
 </head>
-<body class="bg-black text-green-400 font-mono">
+<body>
     <div class="container">
         <div class="content-wrapper">
-            <div class="text-center">
-                <h1 class="title">ICP.SUPPLY</h1>
-                <p class="subtitle">no BS, just data</p>
+            <div class="text-center header-section">
+                <div class="title">ICP.SUPPLY<br><span class="subtitle">no BS, just data</span></div>
             </div>
 
             <!-- Metrics Table -->
-            <table id="metricsTable" class="w-full" style="border-spacing:0;border-collapse:separate;">
-                <thead>
-                    <tr class="border-b border-green-400/60">
-                        <th class="text-left table-header">Label</th>
-                        <th class="text-right table-header metric-value">Value</th>
-                        <th class="text-right table-header metric-value">%</th>
-                    </tr>
-                </thead>
+            <table id="metricsTable" style="border-spacing:0;border-collapse:separate;table-layout:auto;overflow:visible;">
                 <tbody id="metricsTableBody"></tbody>
             </table>
 
@@ -218,10 +264,10 @@
 
         createTableRow(key,metric){
             const tr=document.createElement('tr');
-            tr.className='hover:bg-green-900/20 transition-colors';
+            tr.className=`table-row-hover ${metric.type}`;
 
             const tdLabel=document.createElement('td');
-            tdLabel.className=`table-cell ${metric.type}`;
+            tdLabel.className=`table-cell`;
             const wrap=document.createElement('div');
             wrap.className = metric.expandable ? 'expandable' : '';
 
