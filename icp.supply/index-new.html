@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICP.SUPPLY</title>
+    <meta name="description" content="Real-time Internet Computer Protocol (ICP) supply metrics - total, liquid, staked, maturity, and burned tokens">
+    <meta name="keywords" content="ICP, Internet Computer, cryptocurrency, supply, staking, tokens, blockchain">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/metrics.json" as="fetch" type="application/json">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="content-wrapper">
+            <!-- Header Section -->
+            <header class="text-center header-section">
+                <h1 class="title">
+                    ICP.SUPPLY<br>
+                    <span class="subtitle">no BS, just data</span>
+                </h1>
+            </header>
+
+            <!-- Main Content -->
+            <main>
+                <!-- Metrics Table -->
+                <table id="metricsTable" style="border-spacing:0;border-collapse:separate;table-layout:auto;overflow:visible;">
+                    <tbody id="metricsTableBody">
+                        <!-- Content will be dynamically loaded here -->
+                    </tbody>
+                </table>
+            </main>
+
+            <!-- Footer -->
+            <footer>
+                <div id="lastUpdated" class="text-center opacity-70">
+                    <!-- Timestamp will be updated here -->
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>

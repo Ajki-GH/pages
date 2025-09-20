@@ -1,0 +1,234 @@
+/* ICP Supply Dashboard Styles */
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: black;
+  color: rgb(67, 188, 67);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, "Courier New", monospace;
+}
+
+table {
+  width: 100%;
+}
+
+/* Utility classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.opacity-70 { opacity: 0.7; }
+
+/* Typography - MAXIMUM scaling */
+.title { 
+  font-size: clamp(2.5rem, 15vw, 6rem); 
+  font-weight: 700; 
+  line-height: 0.9; 
+  letter-spacing: -0.03em;
+  margin: 0;
+  padding: 0;
+}
+
+.subtitle { 
+  font-size: clamp(1rem, 4.5vw, 2rem); 
+  font-weight: 400; 
+  opacity: 0.7; 
+  line-height: 0.9;
+  display: block;
+  margin: 0;
+  padding: 0;
+  letter-spacing: -0.02em;
+}
+
+.header-section {
+  margin-bottom: clamp(2rem, 5vw, 4rem);
+  padding-top: 20px;
+}
+
+/* Row level styling - MAXIMUM table scaling */
+.row-level-0 { 
+  font-weight: 600; 
+  font-size: clamp(1.5rem, 6vw, 3rem); 
+  font-family: inherit; 
+  line-height: 1.1;
+}
+
+.row-level-0 td {
+  font-size: clamp(1.5rem, 6vw, 3rem); 
+  font-weight: 600;
+}
+
+.row-level-1 { 
+  font-weight: 500; 
+  font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
+  font-family: inherit; 
+  line-height: 1.1;
+}
+
+.row-level-1 td {
+  font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
+  font-weight: 500;
+}
+
+.row-level-2 { 
+  font-weight: 400; 
+  font-size: clamp(1.125rem, 5vw, 2.5rem); 
+  font-family: inherit; 
+  line-height: 1.1;
+}
+
+.row-level-2 td {
+  font-size: clamp(1.125rem, 5vw, 2.5rem); 
+  font-weight: 400;
+}
+
+/* Table cell styling */
+.table-cell {
+  padding: 0.125rem 0.25rem;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.row-level-0 .table-cell {
+  padding: 0.15rem 0.15rem;
+}
+
+/* Expandable row interactions */
+.expandable { 
+  cursor: pointer; 
+  user-select: none; 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+}
+
+.expand-icon { 
+  transition: transform 0.2s ease; 
+  display: inline-block; 
+  margin-left: clamp(0.5rem, 1.5vw, 1rem); 
+  flex-shrink: 0;
+}
+
+.expand-icon.expanded { 
+  transform: rotate(180deg); 
+}
+
+.expand-icon svg {
+  width: clamp(18px, 3vw, 24px);
+  height: clamp(18px, 3vw, 24px);
+}
+
+.metric-value { 
+  font-family: inherit; 
+  font-variant-numeric: tabular-nums; 
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* Interactive states */
+.table-row-hover {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.table-row-hover:hover {
+  background-color: rgba(5, 46, 22, 0.2);
+}
+
+/* Layout - MAXIMUM viewport usage */
+.container {
+  min-height: 100vh;
+  width: 100%;
+  padding: 0 clamp(0.5rem, 1.5vw, 1rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.content-wrapper {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Table grows to fill space */
+#metricsTable {
+  flex: 1;
+}
+
+/* Timestamp styling */
+#lastUpdated {
+  font-size: clamp(0.875rem, 2.5vw, 1.25rem);
+  margin-top: clamp(1rem, 2.5vw, 1.5rem);
+  flex-shrink: 0;
+}
+
+/* Loading and error states */
+.loading-state,
+.error-state {
+  color: rgb(67, 188, 67);
+}
+
+.error-state {
+  color: #ef4444;
+}
+
+.loading-state > div:first-child {
+  font-size: 1.2em;
+  margin-bottom: 0.5rem;
+}
+
+/* Accessibility improvements */
+.expandable:focus {
+  outline: 2px solid rgb(67, 188, 67);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.expand-icon:focus {
+  outline: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  body {
+    background-color: #000000;
+    color: #00ff00;
+  }
+  
+  .table-row-hover:hover {
+    background-color: rgba(0, 255, 0, 0.1);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .expand-icon {
+    transition: none;
+  }
+  
+  .table-row-hover {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+  
+  .expand-icon {
+    display: none;
+  }
+  
+  .table-row-hover:hover {
+    background-color: transparent;
+  }
+}

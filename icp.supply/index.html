@@ -60,40 +60,40 @@
         }
         
         /* MAXIMUM table scaling - entire rows scale together */
-        .main-row { 
+        .row-level-0 { 
             font-weight: 600; 
             font-size: clamp(1.5rem, 6vw, 3rem); 
             font-family: inherit; 
             line-height: 1.1;
         }
-        .main-row td {
+        .row-level-0 td {
             font-size: clamp(1.5rem, 6vw, 3rem); 
             font-weight: 600;
         }
-        .sub-row { 
+        .row-level-1 { 
             font-weight: 500; 
             font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
             font-family: inherit; 
             line-height: 1.1;
         }
-        .sub-row td {
+        .row-level-1 td {
             font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
             font-weight: 500;
         }
-        .sub-row > div { 
+        .row-level-1 > div { 
             padding-left: clamp(1.5rem, 5vw, 2.5rem); 
         }
-        .age-row { 
+        .row-level-2 { 
             font-weight: 400; 
             font-size: clamp(1.125rem, 5vw, 2.5rem); 
             font-family: inherit; 
             line-height: 1.1;
         }
-        .age-row td {
+        .row-level-2 td {
             font-size: clamp(1.125rem, 5vw, 2.5rem); 
             font-weight: 400;
         }
-        .age-row > div { 
+        .row-level-2 > div { 
             padding-left: clamp(3rem, 8vw, 5rem); 
         }
         
@@ -104,7 +104,7 @@
             overflow: visible;
         }
         
-        .main-row .table-cell {
+        .row-level-0 .table-cell {
             padding: 0.15rem 0.15rem;
         }
         
@@ -200,54 +200,54 @@
             this.totalSupply = 537308290;
             this.expandedRows = new Set(['staked','maturity','burned']);
             this.data = new Map([
-                ['total',{value:537308290,type:'main-row'}],
-                ['liquid',{value:244946282,type:'main-row'}],
-                ['staked',{value:231787257,type:'main-row',expandable:true}],
-                ['staked.unlocking',{value:26306375,type:'sub-row',parent:'staked',expandable:true}],
-                ['staked.unlocking.0-1 years',{value:8342418,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.1-2 years',{value:4568920,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.2-3 years',{value:3519527,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.3-4 years',{value:2756124,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.4-5 years',{value:1361762,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.5-6 years',{value:1426306,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.6-7 years',{value:2063730,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.7-8 years',{value:1267588,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.unlocking.8+ years',{value:0,type:'age-row',parent:'staked.unlocking'}],
-                ['staked.locked',{value:205480954,type:'sub-row',parent:'staked',expandable:true}],
-                ['staked.locked.0-1 years',{value:16957881,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.1-2 years',{value:12614259,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.2-3 years',{value:8569082,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.3-4 years',{value:5930229,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.4-5 years',{value:2368087,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.5-6 years',{value:370418,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.6-7 years',{value:3359045,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.7-8 years',{value:7733678,type:'age-row',parent:'staked.locked'}],
-                ['staked.locked.8+ years',{value:147578276,type:'age-row',parent:'staked.locked'}],
-                ['maturity',{value:103170915,type:'main-row',expandable:true}],
-                ['maturity.unlocked',{value:91111709,type:'sub-row',parent:'maturity'}],
-                ['maturity.unlocking',{value:1048231,type:'sub-row',parent:'maturity',expandable:true}],
-                ['maturity.unlocking.0-1 years',{value:192664,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.1-2 years',{value:109652,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.2-3 years',{value:125465,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.3-4 years',{value:55015,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.4-5 years',{value:146387,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.5-6 years',{value:234901,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.6-7 years',{value:104007,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.7-8 years',{value:80141,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.8+ years',{value:0,type:'age-row',parent:'maturity.unlocking'}],
-                ['maturity.locked',{value:11010974,type:'sub-row',parent:'maturity',expandable:true}],
-                ['maturity.locked.0-1 years',{value:703332,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.1-2 years',{value:100820,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.2-3 years',{value:103592,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.3-4 years',{value:122795,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.4-5 years',{value:161333,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.5-6 years',{value:80364,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.6-7 years',{value:108477,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.7-8 years',{value:156405,type:'age-row',parent:'maturity.locked'}],
-                ['maturity.locked.8+ years',{value:9473856,type:'age-row',parent:'maturity.locked'}],
-                ['burned',{value:2117660,type:'main-row',expandable:true}],
-                ['burned.fees',{value:2611,type:'sub-row',parent:'burned'}],
-                ['burned.cycles',{value:2115049,type:'sub-row',parent:'burned'}]
+                ['total',{value:537308290,type:'row-level-0'}],
+                ['liquid',{value:244946282,type:'row-level-0'}],
+                ['staked',{value:231787257,type:'row-level-0',expandable:true}],
+                ['staked.unlocking',{value:26306375,type:'row-level-1',parent:'staked',expandable:true}],
+                ['staked.unlocking.0-1 years',{value:8342418,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.1-2 years',{value:4568920,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.2-3 years',{value:3519527,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.3-4 years',{value:2756124,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.4-5 years',{value:1361762,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.5-6 years',{value:1426306,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.6-7 years',{value:2063730,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.7-8 years',{value:1267588,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.unlocking.8+ years',{value:0,type:'row-level-2',parent:'staked.unlocking'}],
+                ['staked.locked',{value:205480954,type:'row-level-1',parent:'staked',expandable:true}],
+                ['staked.locked.0-1 years',{value:16957881,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.1-2 years',{value:12614259,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.2-3 years',{value:8569082,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.3-4 years',{value:5930229,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.4-5 years',{value:2368087,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.5-6 years',{value:370418,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.6-7 years',{value:3359045,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.7-8 years',{value:7733678,type:'row-level-2',parent:'staked.locked'}],
+                ['staked.locked.8+ years',{value:147578276,type:'row-level-2',parent:'staked.locked'}],
+                ['maturity',{value:103170915,type:'row-level-0',expandable:true}],
+                ['maturity.unlocked',{value:91111709,type:'row-level-1',parent:'maturity'}],
+                ['maturity.unlocking',{value:1048231,type:'row-level-1',parent:'maturity',expandable:true}],
+                ['maturity.unlocking.0-1 years',{value:192664,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.1-2 years',{value:109652,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.2-3 years',{value:125465,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.3-4 years',{value:55015,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.4-5 years',{value:146387,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.5-6 years',{value:234901,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.6-7 years',{value:104007,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.7-8 years',{value:80141,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.unlocking.8+ years',{value:0,type:'row-level-2',parent:'maturity.unlocking'}],
+                ['maturity.locked',{value:11010974,type:'row-level-1',parent:'maturity',expandable:true}],
+                ['maturity.locked.0-1 years',{value:703332,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.1-2 years',{value:100820,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.2-3 years',{value:103592,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.3-4 years',{value:122795,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.4-5 years',{value:161333,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.5-6 years',{value:80364,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.6-7 years',{value:108477,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.7-8 years',{value:156405,type:'row-level-2',parent:'maturity.locked'}],
+                ['maturity.locked.8+ years',{value:9473856,type:'row-level-2',parent:'maturity.locked'}],
+                ['burned',{value:2117660,type:'row-level-0',expandable:true}],
+                ['burned.fees',{value:2611,type:'row-level-1',parent:'burned'}],
+                ['burned.cycles',{value:2115049,type:'row-level-1',parent:'burned'}]
             ]);
         }
 
@@ -276,9 +276,9 @@
             wrap.className = metric.expandable ? 'expandable' : '';
             
             // Add indentation based on row type
-            if(metric.type === 'sub-row'){
+            if(metric.type === 'row-level-1'){
                 wrap.style.paddingLeft = '1rem';
-            } else if(metric.type === 'age-row'){
+            } else if(metric.type === 'row-level-2'){
                 wrap.style.paddingLeft = '2rem';
             }
 
