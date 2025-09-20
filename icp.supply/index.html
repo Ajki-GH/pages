@@ -4,355 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ICP.SUPPLY</title>
-    <style>
-        /* Base styles */
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: black;
-            color: rgb(67, 188, 67);
-            font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, "Courier New", monospace;
-        }
-        
-        table {
-            width: 100%;
-        }
-        
-        .text-center {
-            text-align: center;
-        }
-        
-        .text-left {
-            text-align: left;
-        }
-        
-        .text-right {
-            text-align: right;
-        }
-        
-        /* MAXIMUM scaling typography */
-        .title { 
-            font-size: clamp(2.5rem, 15vw, 6rem); 
-            font-weight: 700; 
-            line-height: 0.9; 
-            letter-spacing: -0.03em;
-            margin: 0;
-            padding: 0;
-        }
-        .subtitle { 
-            font-size: clamp(1rem, 4.5vw, 2rem); 
-            font-weight: 400; 
-            opacity: 0.7; 
-            line-height: 0.9;
-            display: block;
-            margin: 0;
-            padding: 0;
-            letter-spacing: -0.02em;
-        }
-        
-        .header-section {
-            margin-bottom: clamp(2rem, 5vw, 4rem);
-            padding-top: 20px;
-        }
-        
-        /* MAXIMUM table scaling - entire rows scale together */
-        .row-level-0 { 
-            font-weight: 600; 
-            font-size: clamp(1.5rem, 6vw, 3rem); 
-            font-family: inherit; 
-            line-height: 1.1;
-        }
-        .row-level-0 td {
-            font-size: clamp(1.5rem, 6vw, 3rem); 
-            font-weight: 600;
-        }
-        .row-level-1 { 
-            font-weight: 500; 
-            font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
-            font-family: inherit; 
-            line-height: 1.1;
-        }
-        .row-level-1 td {
-            font-size: clamp(1.25rem, 5.5vw, 2.75rem); 
-            font-weight: 500;
-        }
-        .row-level-1 > div { 
-            padding-left: clamp(1.5rem, 5vw, 2.5rem); 
-        }
-        .row-level-2 { 
-            font-weight: 400; 
-            font-size: clamp(1.125rem, 5vw, 2.5rem); 
-            font-family: inherit; 
-            line-height: 1.1;
-        }
-        .row-level-2 td {
-            font-size: clamp(1.125rem, 5vw, 2.5rem); 
-            font-weight: 400;
-        }
-        .row-level-2 > div { 
-            padding-left: clamp(3rem, 8vw, 5rem); 
-        }
-        
-        /* Simple fixed table spacing */
-        .table-cell {
-            padding: 0.125rem 0.25rem;
-            white-space: nowrap;
-            overflow: visible;
-        }
-        
-        .row-level-0 .table-cell {
-            padding: 0.15rem 0.15rem;
-        }
-        
-        .expandable { 
-            cursor: pointer; 
-            user-select: none; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-        }
-        .expand-icon { 
-            transition: transform 0.2s ease; 
-            display: inline-block; 
-            margin-left: clamp(0.5rem, 1.5vw, 1rem); 
-            flex-shrink: 0;
-        }
-        .expand-icon.expanded { 
-            transform: rotate(180deg); 
-        }
-        .expand-icon svg {
-            width: clamp(18px, 3vw, 24px);
-            height: clamp(18px, 3vw, 24px);
-        }
-        .metric-value { 
-            font-family: inherit; 
-            font-variant-numeric: tabular-nums; 
-            white-space: nowrap;
-            overflow: visible;
-        }
-        
-        .table-row-hover {
-            transition: background-color 0.15s ease-in-out;
-        }
-        
-        .table-row-hover:hover {
-            background-color: rgba(5, 46, 22, 0.2);
-        }
-        
-        .opacity-70 {
-            opacity: 0.7;
-        }
-        
-        /* MAXIMUM viewport usage */
-        .container {
-            min-height: 100vh;
-            width: 100%;
-            padding: 0 clamp(0.5rem, 1.5vw, 1rem);
-            display: flex;
-            flex-direction: column;
-        }
-        .content-wrapper {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* Table grows to fill space */
-        #metricsTable {
-            flex: 1;
-        }
-        
-        /* MAXIMUM timestamp */
-        #lastUpdated {
-            font-size: clamp(0.875rem, 2.5vw, 1.25rem);
-            margin-top: clamp(1rem, 2.5vw, 1.5rem);
-            flex-shrink: 0;
-        }
-    </style>
+    <meta name="description" content="Real-time Internet Computer Protocol (ICP) supply metrics - total, liquid, staked, maturity, and burned tokens">
+    <meta name="keywords" content="ICP, Internet Computer, cryptocurrency, supply, staking, tokens, blockchain">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/metrics.json" as="fetch" type="application/json">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="./src/styles.css">
 </head>
 <body>
     <div class="container">
         <div class="content-wrapper">
-            <div class="text-center header-section">
-                <div class="title">ICP.SUPPLY<br><span class="subtitle">no BS, just data</span></div>
-            </div>
+            <!-- Header Section -->
+            <header class="text-center header-section">
+                <h1 class="title">
+                    ICP.SUPPLY<br>
+                    <span class="subtitle">no BS, just data</span>
+                </h1>
+            </header>
 
-            <!-- Metrics Table -->
-            <table id="metricsTable" style="border-spacing:0;border-collapse:separate;table-layout:auto;overflow:visible;">
-                <tbody id="metricsTableBody"></tbody>
-            </table>
+            <!-- Main Content -->
+            <main>
+                <!-- Metrics Table -->
+                <table id="metricsTable" style="border-spacing:0;border-collapse:separate;table-layout:auto;overflow:visible;">
+                    <tbody id="metricsTableBody">
+                        <!-- Content will be dynamically loaded here -->
+                    </tbody>
+                </table>
+            </main>
 
-            <!-- Last updated timestamp -->
-            <div id="lastUpdated" class="text-center opacity-70"></div>
+            <!-- Footer -->
+            <footer>
+                <div id="lastUpdated" class="text-center opacity-70">
+                    <!-- Timestamp will be updated here -->
+                </div>
+            </footer>
         </div>
     </div>
 
-    <script>
-    class ICPMetricsDashboard {
-        constructor(){
-            this.totalSupply = 537308290;
-            this.expandedRows = new Set(['staked','maturity','burned']);
-            this.data = new Map([
-                ['total',{value:537308290,type:'row-level-0'}],
-                ['liquid',{value:244946282,type:'row-level-0'}],
-                ['staked',{value:231787257,type:'row-level-0',expandable:true}],
-                ['staked.unlocking',{value:26306375,type:'row-level-1',parent:'staked',expandable:true}],
-                ['staked.unlocking.0-1 years',{value:8342418,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.1-2 years',{value:4568920,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.2-3 years',{value:3519527,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.3-4 years',{value:2756124,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.4-5 years',{value:1361762,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.5-6 years',{value:1426306,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.6-7 years',{value:2063730,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.7-8 years',{value:1267588,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.unlocking.8+ years',{value:0,type:'row-level-2',parent:'staked.unlocking'}],
-                ['staked.locked',{value:205480954,type:'row-level-1',parent:'staked',expandable:true}],
-                ['staked.locked.0-1 years',{value:16957881,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.1-2 years',{value:12614259,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.2-3 years',{value:8569082,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.3-4 years',{value:5930229,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.4-5 years',{value:2368087,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.5-6 years',{value:370418,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.6-7 years',{value:3359045,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.7-8 years',{value:7733678,type:'row-level-2',parent:'staked.locked'}],
-                ['staked.locked.8+ years',{value:147578276,type:'row-level-2',parent:'staked.locked'}],
-                ['maturity',{value:103170915,type:'row-level-0',expandable:true}],
-                ['maturity.unlocked',{value:91111709,type:'row-level-1',parent:'maturity'}],
-                ['maturity.unlocking',{value:1048231,type:'row-level-1',parent:'maturity',expandable:true}],
-                ['maturity.unlocking.0-1 years',{value:192664,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.1-2 years',{value:109652,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.2-3 years',{value:125465,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.3-4 years',{value:55015,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.4-5 years',{value:146387,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.5-6 years',{value:234901,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.6-7 years',{value:104007,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.7-8 years',{value:80141,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.unlocking.8+ years',{value:0,type:'row-level-2',parent:'maturity.unlocking'}],
-                ['maturity.locked',{value:11010974,type:'row-level-1',parent:'maturity',expandable:true}],
-                ['maturity.locked.0-1 years',{value:703332,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.1-2 years',{value:100820,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.2-3 years',{value:103592,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.3-4 years',{value:122795,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.4-5 years',{value:161333,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.5-6 years',{value:80364,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.6-7 years',{value:108477,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.7-8 years',{value:156405,type:'row-level-2',parent:'maturity.locked'}],
-                ['maturity.locked.8+ years',{value:9473856,type:'row-level-2',parent:'maturity.locked'}],
-                ['burned',{value:2117660,type:'row-level-0',expandable:true}],
-                ['burned.fees',{value:2611,type:'row-level-1',parent:'burned'}],
-                ['burned.cycles',{value:2115049,type:'row-level-1',parent:'burned'}]
-            ]);
-        }
-
-        getDisplayName(key){
-            const map={
-                'total':'Total','liquid':'Liquid',
-                'staked':'Staked','staked.unlocking':'Unlocking','staked.locked':'Locked',
-                'maturity':'Maturity','maturity.unlocked':'Unlocked','maturity.unlocking':'Unlocking','maturity.locked':'Locked',
-                'burned':'Burned','burned.fees':'Fees','burned.cycles':'Cycles'
-            };
-            if(key.includes('years')) return key.split('.').pop();
-            return map[key]||key;
-        }
-
-        formatNumber(v){ return v===0 ? '0' : Math.round(v).toLocaleString(); }
-        formatPercentage(p){ if(p===0) return '0.0%'; if(p>=100) return '100.0%'; return p.toFixed(1)+'%'; }
-        percentageOfTotal(v){ if(this.totalSupply<=0||v<=0) return 0; return (v/this.totalSupply)*100; }
-
-        createTableRow(key,metric){
-            const tr=document.createElement('tr');
-            tr.className=`table-row-hover ${metric.type}`;
-
-            const tdLabel=document.createElement('td');
-            tdLabel.className=`table-cell`;
-            const wrap=document.createElement('div');
-            wrap.className = metric.expandable ? 'expandable' : '';
-            
-            // Add indentation based on row type
-            if(metric.type === 'row-level-1'){
-                wrap.style.paddingLeft = '1rem';
-            } else if(metric.type === 'row-level-2'){
-                wrap.style.paddingLeft = '2rem';
-            }
-
-            const nameSpan=document.createElement('span');
-            nameSpan.textContent=this.getDisplayName(key);
-            wrap.appendChild(nameSpan);
-
-            if(metric.expandable){
-                const isOpen=this.expandedRows.has(key);
-                const icon=document.createElement('span');
-                icon.className=`expand-icon ${isOpen?'expanded':''}`;
-                icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" style="color: rgb(67, 188, 67);"><path d="m6 9 6 6 6-6"></path></svg>';
-                wrap.appendChild(icon);
-                wrap.addEventListener('click',()=>{ this.toggleExpand(key); });
-            }
-            tdLabel.appendChild(wrap);
-
-            const tdVal=document.createElement('td');
-            tdVal.className='table-cell text-right metric-value';
-            tdVal.textContent=this.formatNumber(metric.value);
-
-            const tdPct=document.createElement('td');
-            tdPct.className='table-cell text-right metric-value';
-            tdPct.textContent = key==='total' ? '100.0%' : this.formatPercentage(this.percentageOfTotal(metric.value));
-
-            tr.appendChild(tdLabel); tr.appendChild(tdVal); tr.appendChild(tdPct);
-            return tr;
-        }
-
-        shouldShowRow(key){
-            const parts=key.split('.'); if(parts.length===1) return true;
-            for(let i=1;i<parts.length;i++){
-                const parent=parts.slice(0,i).join('.');
-                if(this.data.get(parent)?.expandable && !this.expandedRows.has(parent)) return false;
-            }
-            return true;
-        }
-
-        renderTable(){
-            const tbody=document.getElementById('metricsTableBody');
-            tbody.innerHTML='';
-            const order=[
-                'total','liquid',
-                'staked',
-                'staked.unlocking','staked.unlocking.0-1 years','staked.unlocking.1-2 years','staked.unlocking.2-3 years','staked.unlocking.3-4 years','staked.unlocking.4-5 years','staked.unlocking.5-6 years','staked.unlocking.6-7 years','staked.unlocking.7-8 years','staked.unlocking.8+ years',
-                'staked.locked','staked.locked.0-1 years','staked.locked.1-2 years','staked.locked.2-3 years','staked.locked.3-4 years','staked.locked.4-5 years','staked.locked.5-6 years','staked.locked.6-7 years','staked.locked.7-8 years','staked.locked.8+ years',
-                'maturity','maturity.unlocked',
-                'maturity.unlocking','maturity.unlocking.0-1 years','maturity.unlocking.1-2 years','maturity.unlocking.2-3 years','maturity.unlocking.3-4 years','maturity.unlocking.4-5 years','maturity.unlocking.5-6 years','maturity.unlocking.6-7 years','maturity.unlocking.7-8 years','maturity.unlocking.8+ years',
-                'maturity.locked','maturity.locked.0-1 years','maturity.locked.1-2 years','maturity.locked.2-3 years','maturity.locked.3-4 years','maturity.locked.4-5 years','maturity.locked.5-6 years','maturity.locked.6-7 years','maturity.locked.7-8 years','maturity.locked.8+ years',
-                'burned','burned.fees','burned.cycles'
-            ];
-            order.forEach(k=>{ const m=this.data.get(k); if(m && this.shouldShowRow(k)) tbody.appendChild(this.createTableRow(k,m)); });
-            this.updateTimestamp();
-        }
-
-        toggleExpand(key){
-            if(this.expandedRows.has(key)) this.expandedRows.delete(key); else this.expandedRows.add(key);
-            this.renderTable();
-        }
-
-        updateTimestamp(){
-            const el=document.getElementById('lastUpdated');
-            el.textContent='Data loaded: '+ new Date().toLocaleString();
-        }
-
-        async init(){
-            this.renderTable();
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded',()=>{
-        const dashboard=new ICPMetricsDashboard();
-        dashboard.init();
-    });
-    </script>
+    <!-- Application Script -->
+    <script type="module" src="./src/main.js"></script>
 </body>
 </html>
