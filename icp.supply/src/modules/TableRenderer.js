@@ -83,11 +83,6 @@ export class TableRenderer {
   }
 
   render() {
-    if (!this.dataService.isDataLoaded()) {
-      this.renderLoadingState();
-      return;
-    }
-
     try {
       this.container.innerHTML = '';
       const data = this.dataService.getData();
@@ -141,9 +136,13 @@ export class TableRenderer {
 
   updateTimestamp() {
     const timestampElement = document.getElementById('lastUpdated');
-    if (timestampElement && this.dataService.getLastUpdated()) {
-      const formattedTime = Utils.formatTimestamp(this.dataService.getLastUpdated());
-      timestampElement.textContent = `Data updated: ${formattedTime}`;
+    if (timestampElement) {
+      if (this.dataService.isRealDataLoaded() && this.dataService.getLastUpdated()) {
+        const formattedTime = Utils.formatTimestamp(this.dataService.getLastUpdated());
+        timestampElement.textContent = `Data updated: ${formattedTime}`;
+      } else {
+        timestampElement.textContent = 'Loading latest data...';
+      }
     }
   }
 

@@ -8,6 +8,71 @@ export class DataService {
     this.totalSupply = 0;
     this.lastUpdated = null;
     this.cache = new Map();
+    
+    // Initialize with empty structure so table renders immediately
+    this.initializeEmptyData();
+  }
+
+  initializeEmptyData() {
+    const emptyData = {
+      "total": { "value": 0, "type": "row-level-0" },
+      "liquid": { "value": 0, "type": "row-level-0" },
+      "staked": { "value": 0, "type": "row-level-0", "expandable": true },
+      "staked.unlocking": { "value": 0, "type": "row-level-1", "parent": "staked", "expandable": true },
+      "staked.unlocking.0-1 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.1-2 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.2-3 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.3-4 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.4-5 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.5-6 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.6-7 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.7-8 years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.unlocking.8+ years": { "value": 0, "type": "row-level-2", "parent": "staked.unlocking" },
+      "staked.locked": { "value": 0, "type": "row-level-1", "parent": "staked", "expandable": true },
+      "staked.locked.0-1 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.1-2 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.2-3 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.3-4 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.4-5 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.5-6 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.6-7 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.7-8 years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.locked.8+ years": { "value": 0, "type": "row-level-2", "parent": "staked.locked" },
+      "staked.community": { "value": 0, "type": "row-level-1", "parent": "staked" },
+      "rewards": { "value": 0, "type": "row-level-0", "expandable": true },
+      "rewards.unlocked": { "value": 0, "type": "row-level-1", "parent": "rewards" },
+      "rewards.unlocking": { "value": 0, "type": "row-level-1", "parent": "rewards", "expandable": true },
+      "rewards.unlocking.0-1 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.1-2 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.2-3 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.3-4 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.4-5 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.5-6 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.6-7 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.7-8 years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.unlocking.8+ years": { "value": 0, "type": "row-level-2", "parent": "rewards.unlocking" },
+      "rewards.locked": { "value": 0, "type": "row-level-1", "parent": "rewards", "expandable": true },
+      "rewards.locked.0-1 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.1-2 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.2-3 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.3-4 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.4-5 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.5-6 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.6-7 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.7-8 years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.locked.8+ years": { "value": 0, "type": "row-level-2", "parent": "rewards.locked" },
+      "rewards.allocation": { "value": 0, "type": "row-level-1", "parent": "rewards", "expandable": true },
+      "rewards.allocation.stakers": { "value": 0, "type": "row-level-2", "parent": "rewards.allocation" },
+      "rewards.allocation.nodes": { "value": 0, "type": "row-level-2", "parent": "rewards.allocation" },
+      "rewards.community": { "value": 0, "type": "row-level-1", "parent": "rewards" },
+      "burned": { "value": 0, "type": "row-level-0", "expandable": true },
+      "burned.fees": { "value": 0, "type": "row-level-1", "parent": "burned" },
+      "burned.cycles": { "value": 0, "type": "row-level-1", "parent": "burned" }
+    };
+
+    this.data = new Map(Object.entries(emptyData));
+    this.totalSupply = 0;
+    this.lastUpdated = null;
   }
 
   async loadData() {
@@ -29,11 +94,18 @@ export class DataService {
         throw new Error('Invalid data format received');
       }
       
-      this.data = new Map(Object.entries(jsonData.data));
+      // Update existing data structure with real values
+      Object.entries(jsonData.data).forEach(([key, value]) => {
+        if (this.data.has(key)) {
+          const existing = this.data.get(key);
+          this.data.set(key, { ...existing, value: value.value });
+        }
+      });
+      
       this.totalSupply = jsonData.totalSupply;
       this.lastUpdated = jsonData.lastUpdated;
       
-      console.log('✅ Data loaded successfully');
+      console.log('✅ Real data loaded successfully');
       console.log(`📊 Total entries: ${this.data.size}`);
       console.log(`📈 Total supply: ${this.totalSupply.toLocaleString()} ICP`);
       
@@ -137,6 +209,11 @@ export class DataService {
 
   isDataLoaded() {
     return this.data !== null;
+  }
+
+  isRealDataLoaded() {
+    // Check if we have real data (not just zeros)
+    return this.totalSupply > 0;
   }
 
   getOrderedKeys() {

@@ -27,21 +27,36 @@ export class Dashboard {
       // Initialize table renderer
       this.tableRenderer = new TableRenderer(this.dataService);
       
-      // Show loading state immediately
-      this.tableRenderer.renderLoadingState();
-      
-      // Load data
-      await this.loadData();
+      // Render table immediately with empty/zero values
+      this.tableRenderer.render();
       
       // Setup event listeners
       this.setupEventListeners();
       
       this.initialized = true;
-      console.log('✅ Dashboard initialized successfully');
+      console.log('✅ Dashboard initialized with empty data');
+      
+      // Load real data in the background
+      this.loadDataInBackground();
       
     } catch (error) {
       console.error('❌ Failed to initialize dashboard:', error);
       this.handleInitializationError(error);
+    }
+  }
+
+  async loadDataInBackground() {
+    try {
+      console.log('🔄 Loading real data in background...');
+      await this.loadData();
+      
+      // Re-render table with real data
+      this.tableRenderer.render();
+      console.log('✅ Dashboard updated with real data');
+      
+    } catch (error) {
+      console.warn('⚠️ Failed to load real data, keeping zero values:', error);
+      // Table already shows zeros, so this is graceful degradation
     }
   }
 
