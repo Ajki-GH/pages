@@ -168,6 +168,12 @@ table {
   flex-shrink: 0;
 }
 
+#versionTimestamp {
+  font-size: clamp(0.75rem, 2vw, 1rem);
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
 /* Loading and error states */
 .loading-state,
 .error-state {
