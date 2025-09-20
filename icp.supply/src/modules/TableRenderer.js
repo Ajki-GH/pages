@@ -95,8 +95,6 @@ export class TableRenderer {
           this.container.appendChild(row);
         }
       });
-
-      this.updateTimestamp();
       
     } catch (error) {
       console.error('Error rendering table:', error);
@@ -134,17 +132,7 @@ export class TableRenderer {
     `;
   }
 
-  updateTimestamp() {
-    const timestampElement = document.getElementById('lastUpdated');
-    if (timestampElement) {
-      if (this.dataService.isRealDataLoaded() && this.dataService.getLastUpdated()) {
-        const formattedTime = Utils.formatTimestamp(this.dataService.getLastUpdated());
-        timestampElement.textContent = `Data updated: ${formattedTime}`;
-      } else {
-        timestampElement.textContent = 'Loading latest data...';
-      }
-    }
-  }
+
 
   getExpandedRows() {
     return new Set(this.expandedRows);

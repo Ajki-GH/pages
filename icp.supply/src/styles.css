@@ -45,8 +45,8 @@ table {
 }
 
 .header-section {
-  margin-bottom: clamp(2rem, 5vw, 4rem);
-  padding-top: 20px;
+  margin-bottom: clamp(0.5rem, 2vw, 1rem);
+  padding-top: clamp(0.5rem, 1.5vw, 1rem);
 }
 
 /* Row level styling - MAXIMUM table scaling */
@@ -140,11 +140,12 @@ table {
 
 /* Layout - MAXIMUM viewport usage */
 .container {
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
   padding: 0 clamp(0.5rem, 1.5vw, 1rem);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .content-wrapper {
@@ -154,23 +155,29 @@ table {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+/* Main table section with scrolling */
+main {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* Table grows to fill space */
 #metricsTable {
-  flex: 1;
+  width: 100%;
 }
 
-/* Timestamp styling */
-#lastUpdated {
-  font-size: clamp(0.875rem, 2.5vw, 1.25rem);
-  margin-top: clamp(1rem, 2.5vw, 1.5rem);
+/* Footer styling */
+footer {
   flex-shrink: 0;
+  padding: clamp(0.5rem, 1.5vw, 1rem) 0;
 }
 
 #versionTimestamp {
   font-size: clamp(0.75rem, 2vw, 1rem);
-  flex-shrink: 0;
   opacity: 0.5;
 }
 
