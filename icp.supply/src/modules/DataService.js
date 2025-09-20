@@ -14,7 +14,7 @@ export class DataService {
     try {
       console.log('Loading ICP metrics data...');
       
-      const response = await fetch('/metrics.json');
+      const response = await fetch('./metrics.json');
       if (!response.ok) {
         throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
       }
